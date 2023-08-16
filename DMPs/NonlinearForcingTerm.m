@@ -5,15 +5,8 @@ classdef NonlinearForcingTerm < handle
         cs
         type
         
-        % Number of B
+        % Number of Basis Function
         N
-
-        % [Discrete] Goal and Initial Location
-        g
-        y0
-
-        % [Rhythmic] Scaling Coefficient
-        r
 
         % The center location and width of discrete and rhythmic movements 
         c_arr;
@@ -23,8 +16,24 @@ classdef NonlinearForcingTerm < handle
 
     methods
         function obj = NonlinearForcingTerm( cs, N )
-            % The input of the canonical system is the nonlinear forcing term 
-            % Hence, canonical system must be defined
+            % ===========================================================================
+            % Descriptions
+            % ------------
+            %    NonlinearForcingTerm System
+            %    fs = NonlinearForcingTerm( cs, N )
+            %    
+            % Authors           
+            % -------           
+            %   Moses C. Nah    mosesnah@mit.edu
+            % 
+            %
+            % Parameters
+            % ----------
+            %   (1) cs - A Canonical System
+            % 
+            %   (2) N  - Number of basis functions
+            %
+            % ===========================================================================
             
             % The canonical system of the Nonlinear Forcing term 
             obj.cs = cs; 
@@ -37,10 +46,8 @@ classdef NonlinearForcingTerm < handle
 
             % Setting the width and center locations
             % [2023.08.15] Requires improvement for the rhythmic movement case.
-            % Case for Discrete movement followed the information from the
-            % following reference:
+            % Case for Discrete movement followed the information from:
             % Saveriano, Matteo, et al. "Dynamic movement primitives in robotics: A tutorial survey." arXiv preprint arXiv:2102.03861 (2021).
-            % For discrete movement
             obj.c_arr = zeros( 1, N );
             obj.h_arr = zeros( 1, N );
             
@@ -48,7 +55,6 @@ classdef NonlinearForcingTerm < handle
                 obj.c_arr = exp( -obj.cs.alpha_s/( obj.N - 1 ) * ( 0:(obj.N-1) ) );
                 obj.h_arr( 1:end-1 ) = 1.0 ./ diff( obj.c_arr ).^2;
                 obj.h_arr( end ) = obj.h_arr( end-1 );
-            % For rhythmic movement
             else
                 obj.c_arr = 2*pi/obj.N * ( 0.5:1:obj.N );
                 obj.h_arr = obj.N;

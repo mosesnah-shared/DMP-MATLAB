@@ -83,24 +83,26 @@ classdef TransformationSystem < handle
             %
             % Parameters
             % ----------
-            %   (1) g     - Goal position, could be modified
+            %   (1) g       - Goal position, could be modified
             % 
-            %   (2) input - force, could include coupling term
+            %   (2) beta_z  - A Positive Gain
             %
-            %   (3) dt    - time step
+            %   (3) tau     - Time constant, derived from the Canonical System
             %
-            % ===========================================================================
-
-            dy = obj.z_curr/obj.tau;
-            dz = ( obj.alpha_z * obj.beta_z * ( g - obj.y_curr ) - obj.alpha_z * obj.z_curr + input )/obj.tau;
+            %   (4) y0      - Initial position
+            %
+            %   (5) z0      - Initial (normalized) velocity
+            %
+            dy = 1.0/obj.tau * obj.z_curr;
+            dz = 1.0/obj.tau * obj.alpha_z * ( obj.beta_z * ( g - obj.y_curr ) - obj.z_curr ) + input;
             
             % Take out the y_new, z_new
             y_new = dy * dt + obj.y_curr;
             z_new = dz * dt + obj.z_curr;
             
-            % Save the current y,z
             obj.y_curr = y_new;
             obj.z_curr = z_new;
+            
             
         end
     end
