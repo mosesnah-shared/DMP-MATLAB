@@ -20,8 +20,8 @@ t = 0:0.001:2.0;
 f = figure( ); a = axes( 'parent', f );
 hold on
 for i = 1:N
-%     plot( t, fs.calc_ith( t, i ) );
-    plot( cs_discrete.calc( t ), fs.calc_ith( t, i ) );
+    plot( t, fs.calc_ith( t, i ) );
+%     plot( cs_discrete.calc( t ), fs.calc_ith( t, i ) );
 end
 
 %% [Nonlinear Forcing Term] Rhythmic 

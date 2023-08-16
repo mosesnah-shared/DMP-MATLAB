@@ -64,10 +64,29 @@ classdef NonlinearForcingTerm < handle
 
         
         function act = calc_ith( obj, t, i )
-            
-            % Number should be within the number of Basis Functions
+            % ===========================================================================
+            % Descriptions
+            % ------------
+            %    fs = NonlinearForcingTerm.calc_ith( t, i )
+            %    
+            % Authors           
+            % -------           
+            %   Moses C. Nah    mosesnah@mit.edu
+            % 
+            %
+            % Parameters
+            % ----------
+            %   (1) t - The time input
+            %           This will be further calculated with the CanonicalSystem
+            % 
+            %   (2) i - The number of basis functions
+            %
+            % ===========================================================================
+                       
+            % The i should be within 1 to N
             assert( i >= 1 && i <= obj.N )
             
+            % Getting the Center's location
             ci = obj.c_arr( i );
             hi = obj.h_arr( i );
             
@@ -77,11 +96,11 @@ classdef NonlinearForcingTerm < handle
             % Calculate the activation of the i-th function
             % For discrete movement            
             if obj.type == 0
-                act = exp( -hi * ( s - ci ).^2 );
+                act = Gaussian( s, ci, hi );
                 
             % For rhythmic movement                
             else
-                act = exp( hi * ( cos( s - ci ) - 1 ) );
+                act = vonMises( s, ci, hi );
             end
         end
         
