@@ -32,8 +32,8 @@ classdef TransformationSystem < handle
         
         function [ y_new, z_new, dy, dz ] = step( obj, g, input, dt )
             % Forward integrate with the goal value, input value 
-            dy = 1.0/obj.tau * obj.z_curr;
-            dz = 1.0/obj.tau * obj.alpha_z * ( obj.beta_z * ( g - obj.y_curr ) - obj.z_curr ) + input;
+            dy = obj.z_curr / obj.tau;
+            dz = ( obj.alpha_z * obj.beta_z * ( g - obj.y_curr ) - obj.alpha_z * obj.z_curr + input ) / obj.tau;
             
             % Take out the y_new, z_new
             y_new = dy * dt + obj.y_curr;

@@ -10,8 +10,8 @@ fig_config( 'fontSize', 20, 'markerSize', 10 )
 % The basic transformation system which is a second-order linear system
 
 alpha_z = 1.0;
-beta_z  = 1.0;
-tau     = 1.0;
+beta_z  = 1/4 * alpha_z;
+tau     = 2.0;
 g       = 1.0;
 y0      = 0.0;
 z0      = 0.0;
@@ -21,7 +21,7 @@ trans_sys = TransformationSystem( alpha_z, beta_z, tau, y0, z0 );
 dt = 0.001;
 Nt = 50000;
 
-t_arr = dt * 0:Nt;
+t_arr = dt * (0:Nt);
 y_arr = zeros( 1, Nt + 1 );
 z_arr = zeros( 1, Nt + 1 );
 

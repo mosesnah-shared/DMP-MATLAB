@@ -11,22 +11,22 @@ fig_config( 'fontSize', 20, 'markerSize', 10 )
 
 % Minimum jerk Trajectory
 % Sample data for q, dq, ddq
-q0i = 1.0;
-q0f = 2.0;
-D   = 2.0;
-t0i = 0.5;
-N   = 40;
+q0i = 0.0;
+q0f = 1.0;
+D   = 1.0;
+t0i = 2.0;
+N   = 20;
 
 % Parameters of the Transformation System
-alpha_z = 1.0;
+alpha_z = 10.0;
 alpha_s = 1.0;
-beta_z  = alpha_z/4;
+beta_z  = 1/4 * alpha_z;
 tau     = D;
 g       = q0f;
 y0      = q0i;
-z0      = 0.0;
+z0      = 0;
 
-trans_sys = TransformationSystem( alpha_z, beta_z, D, y0, z0 );
+trans_sys = TransformationSystem( alpha_z, beta_z, tau, y0, z0 );
 
 % Canonical System
 cs = CanonicalSystem( 'discrete', tau, alpha_s );
@@ -34,10 +34,10 @@ fs = NonlinearForcingTerm( cs, N );
 
 %% Conduct Imitation Learning
 
-% Assume that we have 20 sample points for the minimum jerk trajectory.
-P = 20;
+% Assume that we have P sample points for the minimum jerk trajectory.
+P = 100;
 
-t_P = linspace( 0.0, D, P );
+t_P = linspace( 0.0, tau, P );
   y_des_arr = zeros( 1, P );
  dy_des_arr = zeros( 1, P );
 ddy_des_arr = zeros( 1, P );
@@ -68,7 +68,7 @@ end
 %% Generating the desired trajectory from the learned weight
 
 dt = 1e-3;
-Nt = 7000;
+Nt = 20000;
 
 t_arr = dt * (0:Nt);
 
@@ -81,29 +81,53 @@ z_arr( 1 ) = z0;
 t = 0;
 
 tmp_arr = zeros( 1, Nt );
-
+f_input_arr = zeros( 1, Nt );
 for i = 1 : Nt
     
-    % Calculating the input from the weights
-    phi_act_arr = zeros( 1, N );
-    for j = 1 : N
-        phi_act_arr( j ) = fs.calc_ith( t-t0i, j );
-    end
-    
-    if sum( phi_act_arr ) <= 1e-9
+
+    if t <= t0i
+        y_arr( i + 1 ) = y0;
+        z_arr( i + 1 ) = z0;
+    elseif t0i <= t && t<= t0i + D
+
+        % Calculating the input from the weights
+        phi_act_arr = zeros( 1, N );
+        for j = 1 : N
+            phi_act_arr( j ) = fs.calc_ith( t-t0i, j );
+        end
+       
+
+        if sum( phi_act_arr ) == 0
+            f_input = 0;
+        else
+            f_input = sum( phi_act_arr .* w_arr )/sum( phi_act_arr ) * cs.calc( t-t0i ) * ( g - y0 );
+        end
+
+        f_input_arr( i ) = f_input; 
+        [ y, z, ~, ~ ] = trans_sys.step( g, f_input, dt );
+        y_arr( i + 1 ) = y;
+        z_arr( i + 1 ) = z;
+    else 
         f_input = 0;
-    else
-        f_input = sum( phi_act_arr .* w_arr )/sum( phi_act_arr ) * cs.calc( t-t0i ) * ( g - y0 );
+        [ y, z, ~, ~ ] = trans_sys.step( g, f_input, dt );
+        y_arr( i + 1 ) = y;
+        z_arr( i + 1 ) = z;        
     end
-    
-    tmp_arr( i ) = sum( phi_act_arr );
-    
-    [ y, z, ~, ~ ] = trans_sys.step( g, f_input, dt );
-    y_arr( i + 1 ) = y;
-    z_arr( i + 1 ) = z;
-    
+
     t = t + dt;
 end
 
 %% 
-plot( y_arr )
+hold on
+plot( t_arr, y_arr )
+set( gca, 'xlim', [t0i, t0i+D] )
+
+ttmp_arr = zeros( 1, length( t_arr ) );
+i = 1;
+for t = t_arr
+    [ ttmp, ~, ~ ] = min_jerk_traj( t, q0i, q0f, D, t0i );
+    ttmp_arr( i ) = ttmp;
+    i = i+1;
+end
+
+plot( t_arr, ttmp_arr, '--' )
