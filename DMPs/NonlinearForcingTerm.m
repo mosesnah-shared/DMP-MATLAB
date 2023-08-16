@@ -22,7 +22,7 @@ classdef NonlinearForcingTerm < handle
     end
 
     methods
-        function obj = NonlinearForcingTerm( cs, N, g, y0, r )
+        function obj = NonlinearForcingTerm( cs, N )
             % The input of the canonical system is the nonlinear forcing term 
             % Hence, canonical system must be defined
             
@@ -34,13 +34,6 @@ classdef NonlinearForcingTerm < handle
             
             % Number of Basis Functions
             obj.N = N;
-
-            % [Discrete Movement] Initial and Goal Location 
-            obj.g  = g;
-            obj.y0 = y0;
-            
-            % [Rhythmic Movement] Scaling Factor
-            obj.r  = r;
 
             % Setting the width and center locations
             % [2023.08.15] Requires improvement for the rhythmic movement case.
