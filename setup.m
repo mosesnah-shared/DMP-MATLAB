@@ -15,4 +15,4 @@
 clear; close all; clc;
 
 % Include all the subdirectories
-add_folders( 'DMPs', 'examples', 'trajectory', 'utils' );
+add_folders( 'DMPs', 'examples', 'trajectory', 'utils', 'helpers' );
