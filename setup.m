@@ -16,3 +16,8 @@ clear; close all; clc;
 
 % Include all the subdirectories
 add_folders( 'DMPs', 'examples', 'trajectory', 'utils', 'helpers' );
+
+% Also run the setup script under Explicit-MATLAB
+cd( 'Explicit-MATLAB' );
+setup
+cd( '..' );
