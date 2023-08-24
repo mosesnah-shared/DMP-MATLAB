@@ -9,8 +9,10 @@ fig_config( 'fontSize', 20, 'markerSize', 10 )
 %% [Transformation System]
 % The basic transformation system which is a second-order linear system
 
+
+for tmp = [0.1,0.25, 0.5, 0.75, 1.0, 2.5]
 alpha_z = 1.0;
-beta_z  = 1/4 * alpha_z;
+beta_z  = alpha_z;
 tau     = 2.0;
 g       = 1.0;
 y0      = 0.0;
@@ -35,5 +37,9 @@ for i = 2 : Nt+1
 end
 
 hold on
-plot( t_arr, y_arr )
-plot( t_arr, z_arr )
+plot( t_arr, y_arr, 'color',  [0.4660 0.6740 0.1880] )
+% plot( t_arr, z_arr, 'color',  [0.4940 0.1840 0.5560] )
+
+set( gca, 'xticklabel', {}, 'yticklabel', {} )
+
+

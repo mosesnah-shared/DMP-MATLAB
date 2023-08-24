@@ -57,7 +57,7 @@ classdef NonlinearForcingTerm < handle
                 obj.h_arr( end ) = obj.h_arr( end-1 );
             else
                 obj.c_arr = 2*pi/obj.N * ( 0.5:1:obj.N );
-                obj.h_arr = obj.N;
+                obj.h_arr = obj.N * ones( 1, obj.N );
             end
 
         end
