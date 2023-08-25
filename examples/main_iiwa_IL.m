@@ -50,188 +50,118 @@ end
 
 %% Get the position, velocity and acceleration data of the end-effector. 
 
-dp_arr_filt  = diff_w_filter(       p_arr, "gaussian", 50 );
-ddp_arr_filt = diff_w_filter( dp_arr_filt, "gaussian", 50 );
+dp_arr  = data_diff(  p_arr );
+ddp_arr = data_diff( dp_arr );
 
-dp_arr_raw   = diff_w_filter(       p_arr, "none", 50 );
-ddp_arr_raw  = diff_w_filter(  dp_arr_raw, "none", 50 );
+subplot( 3, 2, 1 )
+hold on
+plot( t_arr, p_arr, 'linewidth', 3 )
+set( gca, 'xlim', [0, max( t_arr ) ], 'xticklabel', {}, 'fontsize', 30 )
+ylabel( 'Pos. ($m$)')
+ylim1 = get( gca, 'ylim' );
 
+subplot( 3, 2, 3 )
+plot( t_arr, dp_arr, 'linewidth', 3 )
+set( gca, 'xlim', [0, max( t_arr ) ], 'xticklabel', {}, 'fontsize', 30 )
+ylabel( 'Vel. ($m/s$)')
+ylim2 = get( gca, 'ylim' );
 
-%%
-% Get also the analytical form of the Jacobian MAtrix
-q_arr_sym = sym('q',[1 7]);
+subplot( 3, 2, 5 )
+plot( t_arr, ddp_arr, 'linewidth', 3 )
+set( gca, 'xlim', [0, max( t_arr ) ], 'fontsize', 30 )
+ylabel( 'Acc. ($m/s^2$)')
+xlabel( 'Time ($s$)')
+legend( 'X', 'Y', 'Z', 'fontsize', 25 )
+ylim3 = get( gca, 'ylim' );
 
-JH_sym = robot.getHybridJacobian( q_arr_sym );
-
-dJH_sym = 0;
-for i = 1 : 7
-    dJH_sym = dJH_sym + diff( JH_sym, q_arr_sym( i ) );
-end
-
-JH_sym  = simplify( JH_sym );
-dJH_sym = simplify( JH_sym );
-
-% Trim off the JH part
-JH_sym  =  JH_sym( 4:6, : );
-dJH_sym = dJH_sym( 4:6, : );
-
-% Get the values 
-JH_arr  = zeros( 3, 7, N );
-
-for i = 1 : N
-    JH_arr( :, :, i )  = double( subs( JH_sym, q_arr_sym, q_arr( :, i )' ) );
-end
-
-
-%% Filter the p_arr data to get p_arr_filt, dq_arr_filt, ddq_arr_filt
-
-p_arr_filt   = zeros( size( p_arr ) ,'like', p_arr );
-dp_arr_filt  = zeros( size( p_arr ) ,'like', p_arr );
-ddp_arr_filt = zeros( size( p_arr ) ,'like', p_arr );
+% Filtering the Data
+  p_arr_filt = zeros( size( p_arr ), 'like', p_arr );
+ dp_arr_filt = zeros( size( p_arr ), 'like', p_arr );
+ddp_arr_filt = zeros( size( p_arr ), 'like', p_arr );
 
 for i = 1 : 3
    p_arr_filt( i, : ) = smoothdata( p_arr( i, : ), "gaussian", 50 );
+
+   tmp1 = data_diff( p_arr_filt );
+   dp_arr_filt( i, : ) = smoothdata( tmp1( i, : ), "gaussian", 50 );
+
+   tmp2 = data_diff( dp_arr_filt );
+   ddp_arr_filt( i, : ) = smoothdata( tmp2( i, : ), "gaussian", 50 );   
 end
 
-color_arr = [ 0.0000, 0.4470, 0.7410;  ...
-              0.8500, 0.3250, 0.0980;  ...
-              0.9290, 0.6940, 0.1250];	
+subplot( 3, 2, 2 )
+hold on
+plot( t_arr, p_arr_filt, 'linewidth', 3 )
+set( gca, 'xlim', [0, max( t_arr ) ], 'xticklabel', {}, 'fontsize', 30, 'ylim', ylim1 )
+ylabel( 'Pos. ($m$)')
 
-f = figure( ); a = axes( 'parent', f );
-for i = 1 : 3
-    subplot( 3, 1, i )
-    hold on
-    plot( t_arr, p_arr( i, : ), 'linestyle', '-', 'color', color_arr( i, : ), 'linewidth', 3 )
-%     plot( t_arr, p_arr_filt( i, : ), 'linestyle', '--', 'color', color_arr( i, : ), 'linewidth', 3 )
-    set( gca, 'xlim', [0, max( t_arr ) ] )
+subplot( 3, 2, 4 )
+plot( t_arr, dp_arr_filt, 'linewidth', 3 )
+set( gca, 'xlim', [0, max( t_arr ) ], 'xticklabel', {}, 'fontsize', 30, 'ylim', ylim2 )
+ylabel( 'Vel. ($m/s$)')
+
+subplot( 3, 2, 6 )
+plot( t_arr, ddp_arr_filt, 'linewidth', 3 )
+set( gca, 'xlim', [0, max( t_arr ) ], 'fontsize', 30, 'ylim', ylim3 )
+ylabel( 'Acc. ($m/s^2$)')
+xlabel( 'Time ($s$)')
+legend( 'X', 'Y', 'Z', 'fontsize', 25 )
+
+
+
+%% Get also the analytical form of the Jacobian MAtrix
+
+for i = 1 : N
+    tmp = robot.getHybridJacobian( q_arr( :, i ) );
+    JH_arr( :, :, i )  = tmp( 4:6, : );
 end
 
-% Calculate dp_arr_filt, ddp_arr_filt
-dp_arr = diff( p_arr_filt, 1, 2 )./diff( t_arr );
-dp_arr( :, end+1 ) = dp_arr( :, end);
+% The raw w_arr 
+ w_arr = zeros( size( p_arr ), 'like', p_arr );
+dw_arr = zeros( size( p_arr ), 'like', p_arr );
 
-% Filter this one more time
-for i = 1 : 3
-   dp_arr_filt( i, : ) = smoothdata( dp_arr( i, : ), "gaussian", 50 );
-end
+% The filtered w_arr 
+ w_arr_filt = zeros( size( p_arr ), 'like', p_arr );
+dw_arr_filt = zeros( size( p_arr ), 'like', p_arr );
 
-f = figure( ); a = axes( 'parent', f );
-for i = 1 : 3
-    subplot( 3, 1, i )
-    hold on
-    plot( t_arr, dp_arr( i, : ), 'linestyle','-', 'color', color_arr( i, : ), 'linewidth', 3 )
-    plot( t_arr, dp_arr_filt( i, : ), 'linestyle', '--', 'color', color_arr( i, : ), 'linewidth', 3 )    
-    set( gca, 'xlim', [0, max( t_arr ) ] )
-end
-
-% Calculate dp_arr_filt, ddp_arr_filt
-ddp_arr = diff( dp_arr, 1, 2 )./diff( t_arr );
-ddp_arr( :, end+1 ) = ddp_arr( :, end);
-
-% Filter this one more time
-for i = 1 : 3
-   ddp_arr_filt( i, : ) = smoothdata( ddp_arr( i, : ), "gaussian", 50 );
-end
-
-f = figure( ); a = axes( 'parent', f );
-for i = 1 : 3
-    subplot( 3, 1, i )
-    hold on
-    plot( t_arr, ddp_arr( i, : ), 'linestyle','-', 'color', color_arr( i, : ), 'linewidth', 3 )
-    plot( t_arr, ddp_arr_filt( i, : ), 'linestyle', '--', 'color', color_arr( i, : ), 'linewidth', 3 )        
-    set( gca, 'xlim', [0, max( t_arr ) ] )
-end
-
-
-
-%% Calculate the w_arr, dw_arr arrays and filter
-
-% We use the fact that w_arr  = Jr(q) dq_arr
-%                      dq_arr = d Jr(q) dq_arr + Jr(q) ddq_arr
-
-% First, filter q_arr, dq_arr and ddq_arr 
-dq_arr  = zeros( size( q_arr ) ,'like', q_arr );
-ddq_arr = zeros( size( q_arr ) ,'like', q_arr );
-
-q_arr_filt   = zeros( size( q_arr ) ,'like', q_arr );
-dq_arr_filt  = zeros( size( q_arr ) ,'like', q_arr );
-ddq_arr_filt = zeros( size( q_arr ) ,'like', q_arr );
+% The non-filtered dq_arr
+dq_arr = data_diff( q_arr );
+dq_arr_filt = zeros( size( q_arr ), 'like', q_arr );
 
 for i = 1 : 7
-   q_arr_filt( i, : ) = smoothdata( q_arr( i, : ), "gaussian", 50 );
+    dq_arr_filt( i, : ) = smoothdata( dq_arr( i, : ), "gaussian", 50 );
 end
 
-f = figure( ); a = axes( 'parent', f );
-hold on
-plot( t_arr, q_arr, 'linestyle', '-', 'linewidth', 3 )
-plot( t_arr, q_arr_filt, 'linestyle', '--', 'linewidth', 3, 'color', 'k' )
+for i = 1 : N
+         w_arr( :, i ) = JH_arr( :, :, i ) * dq_arr( :, i );
+    w_arr_filt( :, i ) = JH_arr( :, :, i ) * dq_arr_filt( :, i );
+end
+
+ dw_arr     = data_diff( w_arr      );
+dw_arr_filt = data_diff( w_arr_filt );
+
+for i = 1 : 3
+    dw_arr_filt( i, : ) = smoothdata( dw_arr_filt( i, : ), "gaussian", 50 );
+end
+
+subplot( 2, 2, 1 )
+plot( t_arr, w_arr, 'linewidth', 3 )
 set( gca, 'xlim', [0, max( t_arr ) ] )
+ylim1 = get( gca, 'ylim' );
 
-% Calculate dp_arr_filt, ddp_arr_filt
-dq_arr = diff( q_arr_filt, 1, 2 )./diff( t_arr );
-dq_arr( :, end+1 ) = dq_arr( :, end);
+subplot( 2, 2, 2 )
+plot( t_arr, w_arr_filt, 'linewidth', 3 )
+set( gca, 'xlim', [0, max( t_arr ) ], 'ylim', ylim1 )
 
-% Filter this one more time
-for i = 1 : 7
-   dq_arr_filt( i, : ) = smoothdata( dq_arr( i, : ), "gaussian", 50 );
-end
-
-f = figure( ); a = axes( 'parent', f );
-hold on
-plot( t_arr, dq_arr, 'linestyle', '-', 'linewidth', 3 )
-plot( t_arr, dq_arr_filt, 'linestyle', '--', 'linewidth', 3, 'color', 'k' ) 
-    set( gca, 'xlim', [0, max( t_arr ) ] )
-
-% Calculate dp_arr_filt, ddp_arr_filt
-ddq_arr = diff( dq_arr, 1, 2 )./diff( t_arr );
-ddq_arr( :, end+1 ) = ddq_arr( :, end);
-
-% Filter this one more time
-for i = 1 : 7
-   ddq_arr_filt( i, : ) = smoothdata( ddq_arr( i, : ), "gaussian", 50 );
-end
-
-f = figure( ); a = axes( 'parent', f );
-hold on
-plot( t_arr, ddq_arr, 'linestyle', '-', 'linewidth', 3 )
-plot( t_arr, ddq_arr_filt, 'linestyle', '--', 'linewidth', 3, 'color', 'k' )     
+subplot( 2, 2, 3 )
+plot( t_arr, dw_arr, 'linewidth', 3 )
 set( gca, 'xlim', [0, max( t_arr ) ] )
+ylim2 = get( gca, 'ylim' )
 
-%% Get w_arr 
+subplot( 2, 2, 4 )
+plot( t_arr, dw_arr_filt, 'linewidth', 3 )
+set( gca, 'xlim', [0, max( t_arr ) ], 'ylim', ylim2 )
 
- w_arr = zeros( size( p_arr), 'like', p_arr );
-dw_arr = zeros( size( p_arr), 'like', p_arr );
- w_arr_filt = zeros( size( p_arr), 'like', p_arr );
-dw_arr_filt = zeros( size( p_arr), 'like', p_arr );
-
-for i = 1  : N
-    w_arr( :, i ) = JH_arr( :, :, i ) * dq_arr_filt( :, i );
-end
-
-for i = 1 : 3
-   w_arr_filt( i, : ) = smoothdata( w_arr( i, : ), "gaussian", 50 );
-end
-
-f = figure( ); a = axes( 'parent', f );
-hold on
-plot( t_arr, w_arr, 'linestyle', '-', 'linewidth', 3 )
-plot( t_arr, w_arr_filt, 'linestyle', '--', 'linewidth', 3, 'color', 'k' ) 
-    set( gca, 'xlim', [0, max( t_arr ) ] )
-
-% Calculate dp_arr_filt, ddp_arr_filt
-dw_arr = diff( w_arr_filt, 1, 2 )./diff( t_arr );
-dw_arr( :, end+1 ) = dw_arr( :, end);
-
-% Filter this one more time
-for i = 1 : 3
-   dw_arr_filt( i, : ) = smoothdata( dw_arr( i, : ), "gaussian", 50 );
-end
-
-f = figure( ); a = axes( 'parent', f );
-hold on
-plot( t_arr, dw_arr, 'linestyle', '-', 'linewidth', 3 )
-plot( t_arr, dw_arr_filt, 'linestyle', '--', 'linewidth', 3, 'color', 'k' ) 
-    set( gca, 'xlim', [0, max( t_arr ) ] )
 
 %% Running the Animation 
 
