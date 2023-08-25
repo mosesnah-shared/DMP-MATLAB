@@ -19,7 +19,7 @@ anim.attachRobot( robot )
 view( 90, 0 );
 
 
-%% Get the data from txt
+%% Get the Forward Kinematics (p, R) data from text file.
 
 raw_data = parse_txt( './data/iiwa_example1.txt' );
 t_arr = raw_data( :, 1 )' - raw_data( 1, 1 );
@@ -48,6 +48,16 @@ for i = 1 : N
     quat_data( :, i ) = quat';
 end
 
+%% Get the position, velocity and acceleration data of the end-effector. 
+
+dp_arr_filt  = diff_w_filter(       p_arr, "gaussian", 50 );
+ddp_arr_filt = diff_w_filter( dp_arr_filt, "gaussian", 50 );
+
+dp_arr_raw   = diff_w_filter(       p_arr, "none", 50 );
+ddp_arr_raw  = diff_w_filter(  dp_arr_raw, "none", 50 );
+
+
+%%
 % Get also the analytical form of the Jacobian MAtrix
 q_arr_sym = sym('q',[1 7]);
 
