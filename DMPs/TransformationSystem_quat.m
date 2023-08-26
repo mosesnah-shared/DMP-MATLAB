@@ -116,8 +116,7 @@ classdef TransformationSystem_quat < handle
             assert( all( size( input ) == [ 1,3 ] ) || all( size( input ) == [ 3,1 ] ) );
             assert( obj.is_unit_quat( quatg ) );
                 
-            dquat = 1/2 * quat_mul( [ 0; obj.w_curr ], obj.quat_curr ); 
-            
+            dquat      = 1/2 * quat_mul( [ 0; obj.w_curr ], obj.quat_curr ); 
             quat_delta = quat_mul( quatg, quat_conj( obj.quat_curr ) );
             
             dw = obj.alpha_z * ( obj.beta_z * ( quat_delta( 2:4 ) - obj.w_curr ) ) + input ;
@@ -125,7 +124,7 @@ classdef TransformationSystem_quat < handle
             w_new  = dw * dt + obj.w_curr;
             
             % Forward integration of Quaternion
-            quat_new = quat_mul( quat_exp( 1/2 * dt/obj.tau * obj.w_curr ), obj.quat_curr ) ;
+            quat_new = quat_mul( quat_exp( 1/2 * dt/obj.tau * obj.w_curr ), obj.quat_curr );
             
             % Update the current one
             obj.quat_curr = quat_new;

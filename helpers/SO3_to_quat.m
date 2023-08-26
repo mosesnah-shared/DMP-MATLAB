@@ -9,7 +9,10 @@ assert( norm( R * R' - eye( 3 ), 'fro' ) <= 1e-9 );
 
 % Calculate the Quaternion Matrix
 R00 = trace( R );
-[~, k ] = max( abs( [ R00, R(1, 1), R( 2, 2 ), R( 3, 3 ) ] ) );
+
+% If trace is -1, then we need to do exception handling.
+
+[~, k ] = max( abs( [ R00, R( 1, 1 ), R( 2, 2 ), R( 3, 3 ) ] ) );
 
 if k == 1
     ek = 1/2 * sqrt( 1 + R00 );
@@ -43,6 +46,7 @@ switch k-1
         % Will not happen just include
         assert( true )
 end
+
    quat = [ e0, e1, e2, e3 ];
         
     if e0 < 0
