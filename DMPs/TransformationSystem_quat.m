@@ -119,7 +119,7 @@ classdef TransformationSystem_quat < handle
             dquat      = 1/2 * quat_mul( [ 0; obj.w_curr ], obj.quat_curr ); 
             quat_delta = quat_mul( quatg, quat_conj( obj.quat_curr ) );
             
-            dw = obj.alpha_z * ( obj.beta_z * ( quat_delta( 2:4 ) - obj.w_curr ) ) + input ;
+            dw = ( obj.alpha_z * quat_delta( 2:4 ) - obj.beta_z * obj.w_curr + input )/obj.tau;
             
             w_new  = dw * dt + obj.w_curr;
             
@@ -130,7 +130,7 @@ classdef TransformationSystem_quat < handle
             obj.quat_curr = quat_new;
             obj.w_curr    = w_new;
            
-            
+
         end
         
     end

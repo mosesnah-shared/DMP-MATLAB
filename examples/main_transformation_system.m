@@ -42,4 +42,4 @@ plot( t_arr, y_arr, 'color',  [0.4660 0.6740 0.1880] )
 
 set( gca, 'xticklabel', {}, 'yticklabel', {} )
 
-
+end
