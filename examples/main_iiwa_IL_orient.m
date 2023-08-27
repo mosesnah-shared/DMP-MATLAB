@@ -6,7 +6,6 @@
 clear; close all; clc;
 fig_config( 'fontSize', 20, 'markerSize', 10 )
 
-
 %% Load the Data that we imitate to learn 
 
 data_raw = load( 'data/example1/iiwa_example1.mat' );
@@ -20,12 +19,12 @@ domega_arr = data_raw.dw_arr_filt;
 %%
 % Flip the sign if detected
 % For Imitation Learning, one should define the number of basis function
-N  = 100;
+N  = 30;
 
 % Parameters of the 3 DMPs
-alpha_z = 160.0;
-alpha_s = 20.0;
-beta_z  = 10.0;
+alpha_z = 8000.0;
+alpha_s = 1.0;
+beta_z  = 80.0;
 tau     = max( t_arr );
 
 
@@ -38,50 +37,39 @@ P = length( idx );
 % Get the goal location  
 g     = quat( :, idx( end ) );
 cs    = CanonicalSystem( 'discrete', tau, alpha_s );
-fs_wx = NonlinearForcingTerm( cs, N );
-fs_wy = NonlinearForcingTerm( cs, N );
-fs_wz = NonlinearForcingTerm( cs, N );
-
-fs_w = cell( 1, 3 ); 
-fs_w{ 1 } = fs_wx; fs_w{ 2 } = fs_wy; fs_w{ 3 } = fs_wz;
-
+fs_w  = NonlinearForcingTerm( cs, N );
 % Learning the N weights based on Locally Weighted Regression
 w_arr = zeros( 3, N );
 
-tmp0 = quat_mul( g, quat_conj( quat( :, 1 ) ) ); 
-vec0 = tmp0( 2:4 );
+vec0 = quat_log( quat_mul( g, quat_conj( quat( :, 1 ) ) ) ); 
 
-for k = 1 : 3
+phi_arr = zeros( 3*P, 3*N );
+f_arr   = zeros( 3*P, 1 );
 
-    for i = 1: N
+for j = 1 : P
 
-        a_arr   = zeros( 1, P );
-        f_arr   = zeros( 1, P );
-        phi_arr = zeros( 1, P );
+    ddy_des = domega_arr( :, idx( j ) );
+     dy_des =  omega_arr( :, idx( j ) ); 
+    quat_err = quat_log( quat_mul( g, quat_conj( quat( :, idx( j ) ) ) ) ); 
 
-        for j = 1 : P
-
-            tmp1 = quat_mul( g, quat_conj( quat( :, idx( j ) ) ) ); 
-            vec1 = tmp1( 2 : 4 );
-
-            ddy_des = domega_arr( :, idx( j ) );
-             dy_des =  omega_arr( :, idx( j ) );
-
-            a_arr( j ) = vec0( k ) * cs.calc( t_arr( idx( j ) ) );
-            f_arr( j ) = tau * ddy_des( k ) + beta_z * dy_des( k ) - alpha_z * vec1( k );
-            phi_arr( j ) = fs_w{ k }.calc_ith( t_arr( idx( j ) ), i );
-            
-        end
-
-        if( sum( a_arr .* phi_arr .* a_arr ) ~= 0 )
-            w_arr( k, i ) = sum( a_arr .* phi_arr .* f_arr ) / sum( a_arr .* phi_arr .* a_arr );
-        else
-            w_arr( k, i ) = 0;
-        end
-
-    end
+    f_arr( 3*(j-1)+1:3*j ) = tau * ddy_des + beta_z * dy_des - alpha_z * quat_err;
 
 end
+
+for i = 1 : N
+    for j = 1 : P
+        
+        % Get the sum of phis
+        phi_act_arr = zeros( 1, N );
+        for k = 1 : N
+            phi_act_arr( k ) = fs_w.calc_ith(  t_arr( idx( j ) ), k );
+        end
+
+        phi_arr( 3*(j-1)+1:3*j, 3*(i-1)+1:3*i) = fs_w.calc_ith(  t_arr( idx( j ) ), i ) / sum( phi_act_arr ) * cs.calc( t_arr( idx( j ) ) ) * eye( 3 );
+    end
+end
+
+w_arr = inv( phi_arr' * phi_arr ) * phi_arr' * f_arr;
 
 %% Using the weights for the transformation system
 
@@ -114,26 +102,21 @@ for i = 1 : Nt
     % Calculating the input from the weights
     f_input = zeros( 3, 1 );
     
-    tmp1 = quat_mul( g, quat_conj( y ) ); 
-    vectmp = tmp1( 2: 4 );
+    vectmp = quat_log( quat_mul( g, quat_conj( y ) ) ); 
     
-    for k = 1 : 3
-        
-        phi_act_arr = zeros( 1, N );
-        
-        for j = 1 : N
-            phi_act_arr( j ) = fs_w{ k }.calc_ith( t, j );
-        end
-
-        if sum( phi_act_arr ) == 0
-            f_input( k ) = 0;
-        else
-            f_input( k ) = sum( phi_act_arr .* w_arr( k, : ) )/sum( phi_act_arr ) * cs.calc( t ) * vectmp( k );
-        end
+    % Get f_input 
+    % Get the sum of phis
+    phi_act_arr = zeros( 1, N );    
+    for k = 1 : N
+        phi_act_arr( k ) = fs_w.calc_ith( t, k );
+    end
     
+    f_input = zeros( 3, 1 );
+    for k = 1 : N
+        f_input = f_input + fs_w.calc_ith( t, k ) * w_arr( 3*(k-1)+1:3*k ) / sum( phi_act_arr ) * cs.calc( t );
     end
 
-    [ quat_new, w_new, ~, ~ ] = trans.step( g, zeros( 3, 1), dt );
+    [ quat_new, w_new, ~, ~ ] = trans.step( g, f_input, dt );
     quat_data_arr(  :, i  ) = quat_new;
     omega_data_arr( :, i  ) = w_new;
 

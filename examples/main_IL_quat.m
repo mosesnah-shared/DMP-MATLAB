@@ -49,7 +49,7 @@ trans_sys = TransformationSystem_quat( alpha_z, beta_z, tau, quat0, w0 );
 
 % The time step of the simulation and its number of iteration
 dt = 1e-3;
-Nt = 20000;
+Nt = 2000;
 
 % The total time and its time array
 T  = dt * Nt;

@@ -117,9 +117,9 @@ classdef TransformationSystem_quat < handle
             assert( obj.is_unit_quat( quatg ) );
                 
             dquat      = 1/2 * quat_mul( [ 0; obj.w_curr ], obj.quat_curr ); 
-            quat_delta = quat_mul( quatg, quat_conj( obj.quat_curr ) );
+            quat_delta = quat_log( quat_mul( quatg, quat_conj( obj.quat_curr ) ) );
             
-            dw = ( obj.alpha_z * quat_delta( 2:4 ) - obj.beta_z * obj.w_curr + input )/obj.tau;
+            dw = ( obj.alpha_z * quat_delta - obj.beta_z * obj.w_curr + input )/obj.tau;
             
             w_new  = dw * dt + obj.w_curr;
             
