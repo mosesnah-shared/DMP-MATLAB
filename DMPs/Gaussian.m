@@ -11,11 +11,11 @@ function act = Gaussian( s, ci, hi )
 %   
 %   (2) ci - Center of the Gaussian
 %
-%   (3) hi - Width of the Gaussian
+%   (3) hi -  Width of the Gaussian
 % 
 % Returns
 % -------
-%   (1) act = exp( -hi(s-ci)^2 )
+%   (1) act = exp{ -hi ( s - ci )^2 }
 %
 % ===========================================================================
 

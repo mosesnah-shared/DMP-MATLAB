@@ -136,7 +136,7 @@ subplot( 2, 2, 3 )
 plot( t_arr, dw_arr_raw, 'linewidth', 3 )
 set( gca, 'xlim', [0, max( t_arr ) ], 'ytick', [-5, 0, 5, 10]*10^-5 )
 ylim2 = get( gca, 'ylim' );
-ylabel( 'Ang. Acc. ($rad/s$)')
+ylabel( 'Ang. Acc. ($rad/s^2$)')
 xlabel( 'Time ($s$)')
 
 subplot( 2, 2, 4 )
