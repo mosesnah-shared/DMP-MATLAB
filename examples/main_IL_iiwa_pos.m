@@ -17,8 +17,9 @@ robot.init( );
 
 %% ---- [1B] Load the Data we aim to imitate
 
-file_name = 'data/example1/iiwa_example1.mat';
-data_raw = load( file_name );
+dir_name  = './data/example2/';
+file_name = 'iiwa_example_pos';
+data_raw = load( [ dir_name, file_name, '.mat' ] );
 
 
 %% ---- [1C] Imitation Learning - Learning the Weights
@@ -107,7 +108,7 @@ end
 
 % The time step of the simulation and its number of iteration
 dt = t_arr( 2) - t_arr( 1 );
-Nt = P_total;
+Nt = P_total * 2;
 
 % For plotting and saving the data
 t_arr2 = dt *( 0:(Nt-1) );
@@ -117,6 +118,7 @@ dy_arr = zeros( 3, Nt );
 dz_arr = zeros( 3, Nt );
 
 t = 0;
+t0i = 3.0;
 
 tsys{ 1 }.reset( );
 tsys{ 2 }.reset( );
@@ -124,20 +126,42 @@ tsys{ 3 }.reset( );
 
 for i = 0 : (Nt-1)
     
-    for k = 1 : 3
-        % Calculating the input from the weights
-        % First, check if whole activation value is 0
-        phi_sum = fs{ k }.calc_whole_at_t( t );
-
-        if phi_sum ~= 0
-            f_input = fs{ k }.calc_whole_weighted_at_t( t, w_arr_LSS( k, : ) )/phi_sum;
-            f_input = f_input*( g( k )-y0( k ) )*cs.calc( t );
+    if t <= t0i
+        for k = 1 : 3
+            y_arr( k, i + 1 )  =  y0( k );
+            z_arr( k, i + 1 )  =  z0( k );
         end
-        [ y, z, dy, dz ] = tsys{ k }.step( g( k ), f_input, dt );
-        y_arr(  k, i + 1 )  =  y;
-        z_arr(  k, i + 1 )  =  z;
-        dy_arr(  k, i + 1 ) = dy;
-        dz_arr( k, i + 1 )  = dz;
+
+    elseif t0i <= t && t <= t0i + max( t_arr )
+
+        ttmp = t - t0i;
+
+        for k = 1 : 3
+            % Calculating the input from the weights
+            % First, check if whole activation value is 0
+            phi_sum = fs{ k }.calc_whole_at_t( ttmp );
+    
+            if phi_sum ~= 0
+                f_input = fs{ k }.calc_whole_weighted_at_t( ttmp, w_arr_LSS( k, : ) )/phi_sum;
+                f_input = f_input*( g( k )-y0( k ) )*cs.calc( ttmp );
+            end
+
+     
+            [ y, z, dy, dz ] = tsys{ k }.step( g( k ), f_input, dt );
+            y_arr(  k, i + 1 )  =  y;
+            z_arr(  k, i + 1 )  =  z;
+            dy_arr(  k, i + 1 ) = dy;
+            dz_arr( k, i + 1 )  = dz;    
+        end
+
+    else
+        for k = 1 : 3
+            [ y, z, dy, dz ] = tsys{ k }.step( g( k ), 0, dt );
+            y_arr(  k, i + 1 )  =  y;
+            z_arr(  k, i + 1 )  =  z;
+            dy_arr(  k, i + 1 ) = dy;
+            dz_arr( k, i + 1 )  = dz;    
+        end
     end
     t = t + dt;
 end
@@ -146,44 +170,46 @@ a1 = subplot( 3, 2, 1 );
 hold( a1, 'on' );
 plot( a1, t_arr2, y_arr( 1, : ), 'linewidth', 5, 'color', [0.0000, 0.4470, 0.7410] )
 plot( a1, t_arr, data_raw.p_arr_filt( 1, : ), 'linewidth', 3, 'linestyle', '--', 'color', 'k' )
-set( a1, 'xlim', [0, max( t_arr )], 'fontsize', 25, 'xticklabel', {} )
+set( a1, 'xlim', [0, max( t_arr2 )], 'fontsize', 25, 'xticklabel', {} )
 title( a1, 'X-Position', 'Fontsize', 30)
 
 a2 = subplot( 3, 2, 3 );
 hold( a2, 'on' );
 plot( a2, t_arr2, y_arr( 2, : ), 'linewidth', 5, 'color', [0.8500, 0.3250, 0.0980] )
 plot( a2, t_arr, data_raw.p_arr_filt( 2, : ), 'linewidth', 3, 'linestyle', '--', 'color', 'k' )
-set( a2, 'xlim', [0, max( t_arr )],  'fontsize', 25, 'xticklabel', {} )
+set( a2, 'xlim', [0, max( t_arr2 )],  'fontsize', 25, 'xticklabel', {} )
 title( a2, 'Y-Position', 'Fontsize', 30);
 
 a3 = subplot( 3, 2, 5 );
 hold( a3, 'on' );
 plot( a3, t_arr2, y_arr( 3, : ), 'linewidth', 5, 'color', [0.9290 0.6940 0.1250] )
 plot( a3, t_arr, data_raw.p_arr_filt( 3, : ), 'linewidth', 3, 'linestyle', '--', 'color', 'k' )
-set( a3, 'xlim', [0, max( t_arr )], 'fontsize', 25 )
+set( a3, 'xlim', [0, max( t_arr2 )], 'fontsize', 25 )
 xlabel( a3, 'Time (sec)', 'Fontsize', 30)
 title( a3, 'Z-Position', 'Fontsize', 30);
 
 
+dy_arr = data_diff( y_arr );
+
 a4 = subplot( 3, 2, 2 );
 hold( a4, 'on' );
-plot( a4, t_arr2, data_diff( y_arr( 1, : ) ), 'linewidth', 5, 'color', [0.0000, 0.4470, 0.7410] )
+plot( a4, t_arr2, dy_arr( 1, : ), 'linewidth', 5, 'color', [0.0000, 0.4470, 0.7410] )
 plot( a4, t_arr, data_raw.dp_arr_filt( 1, : ), 'linewidth', 3, 'linestyle', '--', 'color', 'k' )
-set( a4, 'xlim', [0, max( t_arr )], 'fontsize', 25, 'xticklabel', {} )
+set( a4, 'xlim', [0, max( t_arr2 )], 'fontsize', 25, 'xticklabel', {} )
 title( a4, 'X-Velocity', 'Fontsize', 30)
 
 a5 = subplot( 3, 2, 4 );
 hold( a5, 'on' );
-plot( a5, t_arr2, data_diff( y_arr( 2, : ) ), 'linewidth', 5, 'color', [0.8500, 0.3250, 0.0980] )
+plot( a5, t_arr2, dy_arr( 2, : ), 'linewidth', 5, 'color', [0.8500, 0.3250, 0.0980] )
 plot( a5, t_arr, data_raw.dp_arr_filt( 2, : ), 'linewidth', 3, 'linestyle', '--', 'color', 'k' )
-set( a5, 'xlim', [0, max( t_arr )],  'fontsize', 25, 'xticklabel', {} )
+set( a5, 'xlim', [0, max( t_arr2 )],  'fontsize', 25, 'xticklabel', {} )
 title( a5, 'Y-Velocity', 'Fontsize', 30);
 
 a6 = subplot( 3, 2, 6 );
 hold( a6, 'on' );
-plot( a6, t_arr2, data_diff( y_arr( 3, : ) ), 'linewidth', 5, 'color', [0.9290 0.6940 0.1250] )
+plot( a6, t_arr2, dy_arr( 3, : ), 'linewidth', 5, 'color', [0.9290 0.6940 0.1250] )
 plot( a6, t_arr, data_raw.dp_arr_filt( 3, : ), 'linewidth', 3, 'linestyle', '--', 'color', 'k' )
-set( a6, 'xlim', [0, max( t_arr )], 'fontsize', 25 )
+set( a6, 'xlim', [0, max( t_arr2 )], 'fontsize', 25 )
 xlabel( a6, 'Time (sec)', 'Fontsize', 30)
 title( a6, 'Z-Velocity', 'Fontsize', 30);
 
@@ -191,7 +217,7 @@ title( a6, 'Z-Velocity', 'Fontsize', 30);
 
 %% Compare in Explicit
 
-anim = Animation( 'Dimension', 3, 'xLim', [-0.7,0.7], 'yLim', [-0.7,0.7], 'zLim', [0,1.4], 'isSaveVideo', true );
+anim = Animation( 'Dimension', 3, 'xLim', [-0.7,0.7], 'yLim', [-0.7,0.7], 'zLim', [0,1.4], 'isSaveVideo', false );
 anim.init( );
 anim.attachRobot( robot )  
 
@@ -212,3 +238,13 @@ for i = 1 : length( t_arr )
 end
 
 anim.close( );
+
+
+%% If ready, generate data input for robot
+
+% At the end-of the day, what is matters is the delta movement
+% Saving both the position and velocity values 
+writematrix(  y_arr - y_arr( :, 1 ), [ dir_name, 'pos_data.csv' ] ) 
+
+% Saving the velocity data too
+writematrix( dy_arr, [ dir_name, 'vel_data.csv' ] ) 

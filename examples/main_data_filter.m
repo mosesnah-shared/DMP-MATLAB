@@ -4,7 +4,7 @@
 
 %% Initialization and call of data
 clear all; close all; clc;
-file_name = './data/example1/iiwa_example1';
+file_name = './data/example2/iiwa_example_pos';
 raw_data = parse_txt( [ file_name, '.txt' ] );
 t_arr = raw_data( :, 1 )' - raw_data( 1, 1 );
 q_arr = raw_data( :, 2:end )';
@@ -71,7 +71,7 @@ cell{ 5 } = ddp_arr_raw;
 cell{ 6 } = ddp_arr_filt;
 
 tmp_label = [ "Pos.", "Vel.", "Acc." ];
-
+f = figure( );
 for i = 1:3
     for j = 1 :2
         subplot( 3, 2, 2*(i-1)+j )
@@ -121,7 +121,7 @@ dw_arr_filt = data_diff( w_arr_filt );
 for i = 1 : 3
     dw_arr_filt( i, : ) = smoothdata( dw_arr_filt( i, : ), "gaussian", 50 );
 end
-
+f = figure( );
 subplot( 2, 2, 1 )
 plot( t_arr, w_arr_raw, 'linewidth', 3 )
 set( gca, 'xlim', [0, max( t_arr ) ] )
