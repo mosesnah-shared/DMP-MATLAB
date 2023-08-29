@@ -17,7 +17,7 @@ robot.init( );
 
 %% ---- [1B] Load the Data we aim to imitate
 
-dir_name  = './data/example2/';
+dir_name  = './data/example4/';
 file_name = 'iiwa_example_pos';
 data_raw = load( [ dir_name, file_name, '.mat' ] );
 
@@ -217,13 +217,12 @@ title( a6, 'Z-Velocity', 'Fontsize', 30);
 
 %% Compare in Explicit
 
-anim = Animation( 'Dimension', 3, 'xLim', [-0.7,0.7], 'yLim', [-0.7,0.7], 'zLim', [0,1.4], 'isSaveVideo', false );
+anim = Animation( 'Dimension', 3, 'xLim', [-0.7,0.7], 'yLim', [-0.7,0.7], 'zLim', [0,1.4], 'isSaveVideo', true );
 anim.init( );
 anim.attachRobot( robot )  
-
     
 plot3(    anim.hAxes, p_des( 1, :   ), p_des( 2, :   ), p_des( 3, :   ), 'linewidth', 3, 'linestyle', '--', 'color', 'k' );
-plot3(    anim.hAxes, y_arr( 1, :   ), y_arr( 2, :   ), y_arr( 3, :   ), 'linewidth', 3, 'linestyle', '-', 'color', [0.4940 0.1840 0.5560]    );
+% plot3(    anim.hAxes, y_arr( 1, :   ), y_arr( 2, :   ), y_arr( 3, :   ), 'linewidth', 3, 'linestyle', '-', 'color', [0.4940 0.1840 0.5560]    );
 scatter3( anim.hAxes, p_des( 1, 1   ), p_des( 2, 1   ), p_des( 3, 1   ), 300, 'filled', 'linewidth', 3, 'markerfacecolor', [0 0.4470 0.7410], 'markeredgecolor', 'k'  );
 scatter3( anim.hAxes, p_des( 1, end ), p_des( 2, end ), p_des( 3, end ), 300, 'filled', 'linewidth', 3, 'markerfacecolor', [0 0.4470 0.7410], 'markeredgecolor', 'k' );
 

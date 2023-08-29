@@ -17,8 +17,9 @@ robot.init( );
 
 %% ---- [1B] Load the Data we aim to imitate
 
-file_name = 'data/example1/iiwa_example1.mat';
-data_raw = load( file_name );
+dir_name  = './data/example3/';
+file_name = 'iiwa_example_orient';
+data_raw = load( [ dir_name, file_name, '.mat' ] );
 
 % Array of quaternion, angular velocity and acceleration
 t_arr      = data_raw.t_arr; 
@@ -85,7 +86,7 @@ trans = TransformationSystem_quat(  alpha_z, beta_z, tau, quat( :, 1 ), omega_ar
 
 % The time step of the simulation and its number of iteration
 dt = t_arr( 2 ) - t_arr( 1 );
-Nt = P_total;
+Nt = P_total * 3;
 
 % The total time and its time array
 T  = dt * Nt;
@@ -105,30 +106,40 @@ z0 = omega_arr( :, 1 );
 y = y0;
 z = z0;
 
+t0i = 3.0;
+
 for i = 1 : Nt
     
-    % Calculating the input from the weights
-    f_input = zeros( 3, 1 );
+    if t <= t0i
+
+        quat_data_arr(  :, i  ) = y0;
+        omega_data_arr( :, i  ) = z0;
+
+    else    
+        % Calculating the input from the weights        
+        vectmp = quat_log( quat_mul( g, quat_conj( y ) ) ); 
+        
+        ttmp = t - t0i;
+
+        % Get f_input 
+        % Get the sum of phis
+        phi_act_arr = zeros( 1, N );    
+        for k = 1 : N
+            phi_act_arr( k ) = fs_w.calc_ith( ttmp, k );
+        end
+        
+        f_input = zeros( 3, 1 );
+        for k = 1 : N
+            f_input = f_input + fs_w.calc_ith( ttmp, k ) * w_arr( 3*(k-1)+1:3*k ) / sum( phi_act_arr ) * cs.calc( ttmp );
+        end
     
-    vectmp = quat_log( quat_mul( g, quat_conj( y ) ) ); 
-    
-    % Get f_input 
-    % Get the sum of phis
-    phi_act_arr = zeros( 1, N );    
-    for k = 1 : N
-        phi_act_arr( k ) = fs_w.calc_ith( t, k );
-    end
-    
-    f_input = zeros( 3, 1 );
-    for k = 1 : N
-        f_input = f_input + fs_w.calc_ith( t, k ) * w_arr( 3*(k-1)+1:3*k ) / sum( phi_act_arr ) * cs.calc( t );
+        [ quat_new, w_new, ~, ~ ] = trans.step( g, f_input, dt );
+        quat_data_arr(  :, i  ) = quat_new;
+        omega_data_arr( :, i  ) = w_new;
+
+        y = quat_new;
     end
 
-    [ quat_new, w_new, ~, ~ ] = trans.step( g, f_input, dt );
-    quat_data_arr(  :, i  ) = quat_new;
-    omega_data_arr( :, i  ) = w_new;
-
-    y = quat_new;
     
     t = t + dt;
 end
@@ -156,7 +167,7 @@ for i = 1 : 4
     hold on
     plot( t_arr , quat_data_arr( i, :), 'color', 'k', 'linewidth', 3 );
     plot( data_raw.t_arr, quat( i, :) , 'linestyle', '--', 'color', c_arr( i, : ), 'linewidth', 5);
-    set( gca, 'xlim', [ 0, max( data_raw.t_arr ) ], 'fontsize', 25, 'ylim', [-1,1] )
+    set( gca, 'xlim', [ 0, max( t_arr ) ], 'fontsize', 25, 'ylim', [-1,1] )
     if i ~= 4
         set( gca, 'xticklabel', {})
     end
@@ -169,23 +180,28 @@ end
 
 %% Compare in Explicit
 
-anim = Animation( 'Dimension', 3, 'xLim', [-0.7,0.7], 'yLim', [-0.7,0.7], 'zLim', [0,1.4], 'isSaveVideo', true );
+anim = Animation( 'Dimension', 3, 'xLim', [-0.7,0.7], 'yLim', [-0.7,0.7], 'zLim', [0,1.4], 'isSaveVideo', false );
 anim.init( );
 anim.attachRobot( robot )  
 
 q_arr = data_raw.q_arr;
 [ ~, N ] = size( q_arr );
 
-p_arr = zeros( 3, N );
-R_arr = zeros( 3, 3, N );
-
-
+p_arr     = zeros( 3, N );
+R_arr     = zeros( 3, 3, N );
+R_arr_del = zeros( 3, 3, N );
 
 for i = 1 : N
     robot.updateKinematics( q_arr( :, i ) );
     H = robot.getForwardKinematics( q_arr( :, i ) );
     p_arr( :, i ) = H( 1:3, 4 );
     R_arr( :, :, i ) = H( 1:3, 1:3 );
+
+end
+
+ttmp1 = R_arr( :, :, 200 );
+for i = 1 : N
+    R_arr_del( :, :, i ) = R_arr( :, :, 1 )' * R_arr( :, :, i );
 end
 
 view([90,0])
@@ -201,6 +217,16 @@ for i = 1:200:N
     quiver3( anim.hAxes,  p_arr( 1, i ), p_arr( 2, i ), p_arr( 3, i ), scl * R_arr( 1, 3, i ), scl * R_arr( 2, 3, i ), scl * R_arr( 3, 3, i ), 'linewidth', 3, 'color', 'b')
 end
 
+offset = 0.25;
+plot3( anim.hAxes,  p_arr( 1, : ), p_arr( 2, : ), offset +  p_arr( 3, : ), 'linewidth', 3, 'linestyle', '--', 'color', 'k')
+
+
+for i = 1:200:N
+    R_tmp = quat2rotm( quat_data_arr( :, i )' );
+    quiver3( anim.hAxes,  p_arr( 1, i ), p_arr( 2, i ), offset + p_arr( 3, i ), scl * R_arr_del( 1, 1, i ), scl * R_arr_del( 2, 1, i ), scl * R_arr_del( 3, 1, i ), 'linewidth', 3, 'color', 'r')
+    quiver3( anim.hAxes,  p_arr( 1, i ), p_arr( 2, i ), offset + p_arr( 3, i ), scl * R_arr_del( 1, 2, i ), scl * R_arr_del( 2, 2, i ), scl * R_arr_del( 3, 2, i ), 'linewidth', 3, 'color', 'g')
+    quiver3( anim.hAxes,  p_arr( 1, i ), p_arr( 2, i ), offset + p_arr( 3, i ), scl * R_arr_del( 1, 3, i ), scl * R_arr_del( 2, 3, i ), scl * R_arr_del( 3, 3, i ), 'linewidth', 3, 'color', 'b')
+end
 
 offset = 0.5;
 plot3( anim.hAxes,  p_arr( 1, : ), p_arr( 2, : ),offset +  p_arr( 3, : ), 'linewidth', 3, 'linestyle', '--', 'color', 'k')
@@ -212,7 +238,6 @@ for i = 1:200:N
     quiver3( anim.hAxes,  p_arr( 1, i ), p_arr( 2, i ), offset + p_arr( 3, i ), scl * R_tmp( 1, 3 ), scl * R_tmp( 2, 3 ), scl * R_tmp( 3, 3 ), 'linewidth', 3, 'color', 'b')
 end
 
-
 for i = 1 : N
     robot.updateKinematics( q_arr( :, i ) );
     H = robot.getForwardKinematics( q_arr( :, i ) );
@@ -220,3 +245,28 @@ for i = 1 : N
 end
 
 anim.close( );
+
+
+%% Final test of R_arr_del 
+
+
+
+%% If ready, generate Save data output for robot.
+
+% Reshaping the R_arr as 2D array
+[ ~, ~, N ] = size( R_arr );
+
+R_arr_save = zeros( 3, 3*N );
+R_arr_del_save = zeros( 3, 3*N );
+
+for i = 1 : N
+    R_arr_save( :, 3*(i-1)+1:3*i )     = R_arr( :, :, i );
+    R_arr_del_save( :, 3*(i-1)+1:3*i ) = R_arr_del( :, :, i );
+end
+
+% At the end-of the day, what is matters is the delta movement
+% Saving the orientation data as an SO(3) matrix
+writematrix(  R_arr_save    , [ dir_name, 'orientation_data.csv'     ] ) 
+writematrix(  R_arr_del_save, [ dir_name, 'orientation_del_data.csv' ] ) 
+
+

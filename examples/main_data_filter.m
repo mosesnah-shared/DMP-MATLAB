@@ -4,10 +4,10 @@
 
 %% Initialization and call of data
 clear all; close all; clc;
-file_name = './data/example2/iiwa_example_pos';
+file_name = './data/example4/iiwa_example_pos';
 raw_data = parse_txt( [ file_name, '.txt' ] );
 t_arr = raw_data( :, 1 )' - raw_data( 1, 1 );
-q_arr = raw_data( :, 2:end )';
+q_arr = raw_data( :, 2:8 )';
 
 %% Call the robot without animation
 
