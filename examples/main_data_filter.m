@@ -4,8 +4,8 @@
 
 %% Initialization and call of data
 clear all; close all; clc;
-file_name = './data/example4/iiwa_example_pos';
-raw_data = parse_txt( [ file_name, '.txt' ] );
+file_name = './data/example6/test3';
+raw_data = parse_txt( [ file_name, '.txt' ], 0 );
 t_arr = raw_data( :, 1 )' - raw_data( 1, 1 );
 q_arr = raw_data( :, 2:8 )';
 

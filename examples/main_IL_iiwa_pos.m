@@ -17,8 +17,8 @@ robot.init( );
 
 %% ---- [1B] Load the Data we aim to imitate
 
-dir_name  = './data/example4/';
-file_name = 'iiwa_example_pos';
+dir_name  = './data/example6/';
+file_name = 'test3';
 data_raw = load( [ dir_name, file_name, '.mat' ] );
 
 
@@ -123,6 +123,8 @@ t0i = 3.0;
 tsys{ 1 }.reset( );
 tsys{ 2 }.reset( );
 tsys{ 3 }.reset( );
+
+scl = 0.8;
 
 for i = 0 : (Nt-1)
     

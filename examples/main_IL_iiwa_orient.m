@@ -254,13 +254,19 @@ anim.close( );
 %% If ready, generate Save data output for robot.
 
 % Reshaping the R_arr as 2D array
-[ ~, ~, N ] = size( R_arr );
+[ ~, ~, N ] = size( R_data_arr );
+R_arr_del = zeros( 3, 3, N );
+
+for i = 1 : N
+    R_arr_del( :, :, i ) = R_data_arr( :, :, 1 )' * R_data_arr( :, :, i );
+end
+
 
 R_arr_save = zeros( 3, 3*N );
 R_arr_del_save = zeros( 3, 3*N );
 
 for i = 1 : N
-    R_arr_save( :, 3*(i-1)+1:3*i )     = R_arr( :, :, i );
+    R_arr_save( :, 3*(i-1)+1:3*i )     = R_data_arr( :, :, i );
     R_arr_del_save( :, 3*(i-1)+1:3*i ) = R_arr_del( :, :, i );
 end
 
