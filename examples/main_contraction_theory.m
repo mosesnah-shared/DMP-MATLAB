@@ -5,3 +5,5 @@
 %% [Initialization] 
 clear; close all; clc;
 fig_config( 'fontSize', 20, 'markerSize', 10 )
+
+%% Sequencing Discrete Movements
