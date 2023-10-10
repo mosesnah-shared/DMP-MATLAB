@@ -161,7 +161,6 @@ for i = 0 : (Nt-1)
         y_arr(  i + 1 ) = y;
         z_arr(  i + 1 ) = z;
         dz_arr( i + 1 ) = dz;        
-        dz_arr( i + 1 ) = dz;
     end
 
     t = t + dt;
