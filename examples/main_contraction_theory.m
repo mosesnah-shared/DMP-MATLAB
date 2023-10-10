@@ -249,7 +249,7 @@ plot( t_arr, x_arr( 2:3, : ) )
 
 % The time step of the simulation and its number of iteration
 dt = 1e-3;
-Nt = 2000;
+Nt = 8000;
 
 % The total time and its time array
 T     = dt * Nt;
@@ -262,7 +262,7 @@ dy1_arr = zeros( 2, Nt );
 
 % Initial Position and Velocity of the First Movement
 y0_1  = [ 1.0; 2.0 ];
-g1   = [ 4.0; 1.0 ];
+g1   = [ 3.0; 1.0 ];
 dy0_1 = [ 0.0; 0.0 ];
 
 cs1 = CanonicalSystem( 'discrete', tau, alpha_s );
@@ -278,8 +278,8 @@ y2_arr  = zeros( 2, Nt );
 dy2_arr = zeros( 2, Nt );
 
 % Initial Position and Velocity of the First Movement
-y0_2  = [ 3.0; 3.0 ];
-g2   = [ 5.0; 4.0 ];
+y0_2  = [ -0.4; 2.0 ];
+g2   = [ 0.6; 1.5 ];
 dy0_2 = [ 0.0; 0.0 ];
 
 cs2 = CanonicalSystem( 'discrete', tau, alpha_s );
@@ -305,11 +305,11 @@ t = 0;
 for i = 0 : (Nt-1)
 
     % First DMP
-    if t <= t0i
+    if t <= t0i +0.3
         x1_arr( :, i+1 ) = x1_init;
 
     % During the movement
-    elseif t0i <= t
+    elseif t0i +0.3 <= t
 
         % taking off the initial time offset
         t_tmp = t - t0i;
@@ -332,9 +332,16 @@ for i = 0 : (Nt-1)
             f_input_y = f_input_y*( g1( 2 )-y0_1( 2 ) )*x1_curr( 1 );
         end
 
+        % During the movement
+        if t0i + D <= t        
+            f_input_x = 0;
+            f_input_y = 0;
+        end
+
         dx = A1 * x1_curr + 1/tau*[ zeros(3,1); f_input_x;f_input_y ]+ [ zeros(3,1); Az*g1 ];
         x1_curr = x1_curr + dx * dt;
         x1_arr(:, i+1 ) = x1_curr;
+
 
     end
 
@@ -366,7 +373,7 @@ for i = 0 : (Nt-1)
             f_input_y = f_input_y*( g2( 2 )-y0_2( 2 ) )*x2_curr( 1 );
         end
 
-        dx = A1 * x2_curr + 1/tau*[ zeros(3,1); f_input_x;f_input_y ]+ [ zeros(3,1); Az*g2 ] + eye( 5 ) * ( x1_curr - x2_curr ) + + [ zeros(3,1); Az*g1 ] - + [ zeros(3,1); Az*g2 ] ;
+        dx = A1 * x2_curr + 1/tau*[ zeros(3,1); f_input_x;f_input_y ]+ [ zeros(3,1); Az*g2 ] +  4 * eye( 5 ) * ( x1_curr - x2_curr ) + + [ zeros(3,1); Az*g1 ] - + [ zeros(3,1); Az*g2 ] ;
         x2_curr = x2_curr + dx * dt;
         x2_arr(:, i+1 ) = x2_curr;
 
@@ -375,9 +382,9 @@ for i = 0 : (Nt-1)
     t = t + dt;
 end
 
-subplot( 2, 1, 1 )
-plot( t_arr, x1_arr( 2:3, : ))
-
-subplot( 2, 1, 2 )
-plot( t_arr, x2_arr( 2:3, : ))
-    
+plot( x1_arr( 2, : ), x1_arr( 3, : ) )
+hold on
+scatter( g1( 1 ), g1( 2 ), 400, "yellow", "filled" )
+plot( x2_arr( 2, : ), x2_arr( 3, : ) )
+scatter( g2( 1 ), g2( 2 ), 400, "green" , "filled")
+axis equal
