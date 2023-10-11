@@ -486,7 +486,7 @@ Nmov = 8;
 
 % The time step of the simulation and its number of iteration
 dt = 1e-3;
-Nt = 3500 * Nmov;
+Nt = 18500;
 
 % The total time and its time array
 T     = dt * Nt;
@@ -544,10 +544,8 @@ t = 0;
 
 t0i   =  0.5;
 toff  =  -1.0;
-toff2 =  0;
-
 acts = zeros( 1, Nmov-1 );
-
+k = 1;
 for i = 0 : (Nt-1)
 
     for j = 1 : Nmov
@@ -592,53 +590,86 @@ for i = 0 : (Nt-1)
     end
     
     % For the coupled movements
-    if t >= t0i
-        for j = 1 : Nmov
-
-           if t >= (t0i+(j-1)*(D+toff))
-
+    if t >= t0i 
+        % Adding the force term 
+        if k <= 8
+            if t >= (t0i+(k-1)*(D+toff)) && t <= (t0i+k*(D+toff)) 
+    
                 % taking off the initial time offset
-                t_tmp = t - (t0i+(j-1)*(D+toff));
-
+                t_tmp = t - (t0i+(k-1)*(D+toff));
+    
                 % Calculating the input from the weights
                 % First, check if whole activation value is 0
                 phi_sum1 = fs.calc_whole_at_t( t_tmp );
-
+    
                 f_input_x = 0;
                 if phi_sum1 ~= 0
                     f_input_x = fs.calc_whole_weighted_at_t( t_tmp, w_arr_LSS )/phi_sum1;
-                    f_input_x = f_input_x*( g( 1, j )-y0( 1, j ) )*x_curr( 1, j );
+                    f_input_x = f_input_x*( g( 1, k )-y0( 1, k ) )*x_curr( 1, k );
                 end
-
+    
                 phi_sum2 = fs.calc_whole_at_t( t_tmp );
-
+    
                 f_input_y = 0;
                 if phi_sum2 ~= 0
                     f_input_y = fs.calc_whole_weighted_at_t( t_tmp, w_arr_LSS )/phi_sum2;
-                    f_input_y = f_input_y*( g( 2, j )-y0( 2, j ) )*x_curr( 1, j );
+                    f_input_y = f_input_y*( g( 2, k )-y0( 2, k ) )*x_curr( 1, k );
                 end
-
-                if t >= (t0i+(j-1)*(D+toff)+D)
+                
+                if t >=  (t0i+(k-1)*(D+toff)+D)
                     f_input_x = 0;
                     f_input_y = 0;
                 end
-
-                dx_coupled = A1 * x_coupled + 1/tau^2*[ zeros(3,1); f_input_x;f_input_y ]+ [ zeros(3,1); Az*g( :, j) ];
-
-                % Need to calculate the the coupling term 
-                if  t >= (t0i+(j-1)*D + 0.5*D+toff2 ) && j ~= 8
-                    acts( j ) = acts( j ) + 0.001;
-
-                    if acts( j ) >= 1.0
-                       acts( j ) = 1.0; 
-                    end
-                    dx_coupled = dx_coupled + acts( j ) * ( 2 * eye( 5 ) * ( x_arr( :, i, j + 1 ) -x_arr( :, i, j ) ) + [ zeros(3,1); Az*g( :, j+1) ] - [ zeros(3,1); Az*g( :, j) ] );
-                end
-
+                
+                dx_coupled = A1 * x_coupled + 1/tau^2*[ zeros(3,1); f_input_x;f_input_y ]+ [ zeros(3,1); Az*g( :, k) ];
+               
+                    
+                dx_coupled = dx_coupled + ( 2*eye( 5 ) * ( x_curr( :, k ) - x_coupled ) ); 
+    
                 x_coupled = x_coupled + dx_coupled * dt;
-                x_coupled_arr( :, i+1 ) = x_coupled;           
-           end
+                x_coupled_arr( :, i+1 ) = x_coupled;    
+                
+            else
+                k = k+1;
+            end
+        else
+
+                % taking off the initial time offset
+                t_tmp = t - (t0i+(8-1)*(D+toff));
+    
+                % Calculating the input from the weights
+                % First, check if whole activation value is 0
+                phi_sum1 = fs.calc_whole_at_t( t_tmp );
+    
+                f_input_x = 0;
+                if phi_sum1 ~= 0
+                    f_input_x = fs.calc_whole_weighted_at_t( t_tmp, w_arr_LSS )/phi_sum1;
+                    f_input_x = f_input_x*( g( 1, 8 )-y0( 1, 8 ) )*x_curr( 1, 8 );
+                end
+    
+                phi_sum2 = fs.calc_whole_at_t( t_tmp );
+    
+                f_input_y = 0;
+                if phi_sum2 ~= 0
+                    f_input_y = fs.calc_whole_weighted_at_t( t_tmp, w_arr_LSS )/phi_sum2;
+                    f_input_y = f_input_y*( g( 2, 8 )-y0( 2, 8 ) )*x_curr( 1, 8 );
+                end
+                
+                if t >=  (t0i+(8-1)*(D+toff)+D)
+                    f_input_x = 0;
+                    f_input_y = 0;
+                end
+                
+                dx_coupled = A1 * x_coupled + 1/tau^2*[ zeros(3,1); f_input_x;f_input_y ]+ [ zeros(3,1); Az*g( :, 8) ];
+               
+                    
+                dx_coupled = dx_coupled + ( 2*eye( 5 ) * ( x_curr( :, 8 ) - x_coupled ) ); 
+    
+                x_coupled = x_coupled + dx_coupled * dt;
+                x_coupled_arr( :, i+1 ) = x_coupled;                
+
         end
+
     else
         x_coupled_arr( :, i+1 ) = [ cs.calc( 0 ); y0( :, 1 ); zeros( 2, 1 ) ];
     end    
