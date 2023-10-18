@@ -188,3 +188,5 @@ set( gca, 'xlim', [0, T], 'fontsize', 30, 'xtick', 0:0.5:T)
 xlabel( 'Time (sec)' )
 ylabel( 'Acc. (-)' )
 
+%% ---- [1D] Saving the Weights and Parameters of the Learned Trajectory 
+
