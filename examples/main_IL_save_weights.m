@@ -1,23 +1,68 @@
 %% ==================================================================
-%% [Title] Imitation Learning, in 3D Space
+%% [Title] Imitation Learning and Saved the Weight Array
 % Author: Moses Chong-ook Nah
 %  Email: mosesnah@mit.edu
-%   Date: 2023.08.15
+%   Date: 2023.10.18
 %% ==================================================================
 
 %% [0A] Initialization
 clear; close all; clc;
 fig_config( 'fontSize', 20, 'markerSize', 10 )
 
-%% [1-] Imitation Learning of Minimum-jerk Trajectory
-%% ---- [1A] Parameter Initialization
+%% [1-] Imitation Learning of a Given Trajectory
+%% ---- [1A] Define Trajectory
 
-% The trajectory we aim to imitate is the Minimum jerk Trajectory
-% The initial (q0i), final posture (q0f), duration (D), starting time (t0i) of the trajectory
-q0i = 0.0;
-q0f = 1.0;
-D   = 1.0;
-t0i = 0.0;
+% Define the Analytical Trajectory 2D that we aim to learn
+syms t
+
+% Name of the Trajectory which we aim to learn
+name_traj = 'min_jerk_traj';
+
+% Define the Trajectory, which is a 3D example.
+p0i = [ 0, 1, 1 ];
+p0f = [ 0, 2, 1 ];
+D   = 2.0;
+tn  = t/D;
+
+% Position
+px = p0i( 1 ) + ( p0f( 1 ) - p0i( 1 ) ) * ( 10 * tn^3 - 15 * tn^4 + 6 * tn^5 );
+py = p0i( 2 ) + ( p0f( 2 ) - p0i( 2 ) ) * ( 10 * tn^3 - 15 * tn^4 + 6 * tn^5 );
+pz = p0i( 3 ) + ( p0f( 3 ) - p0i( 3 ) ) * ( 10 * tn^3 - 15 * tn^4 + 6 * tn^5 );
+
+% Velocity
+dpx = diff( px, t );
+dpy = diff( py, t );
+dpz = diff( pz, t );
+
+% Acceleration
+ddpx = diff( dpx, t );
+ddpy = diff( dpy, t );
+ddpz = diff( dpz, t );
+
+% Saving these elements as symbolic array.
+p_sym   = {   px,   py,   pz };
+dp_sym  = {  dpx,  dpy,  dpz };
+ddp_sym = { ddpx, ddpy, ddpz };
+
+% Generating the actual data from the symbolic form 
+% These data will be used for Imitation Learning
+dt    = 0.01;
+t_arr = 0:dt:D;
+P     = length( t_arr );
+
+  p_data = zeros( 3, P );
+ dp_data = zeros( 3, P );
+ddp_data = zeros( 3, P );
+
+for i = 1 : P
+    for j = 1 : 3
+         p_data( j, i ) = subs(   p_sym{ j }, t, t_arr( i ) );
+        dp_data( j, i ) = subs(  dp_sym{ j }, t, t_arr( i ) );
+       ddp_data( j, i ) = subs( ddp_sym{ j }, t, t_arr( i ) );
+    end
+end
+
+%% ---- [1B] Learning the Weights for Imitation Learning
 
 % For Imitation Learning, one should define the number of basis function
 N  = 50;
