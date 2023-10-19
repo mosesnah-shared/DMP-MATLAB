@@ -8,206 +8,173 @@ fig_config( 'fontSize', 20, 'markerSize', 10 )
 
 %% [1A] [Calling a Weights]
 
+load( 'learned_parameters/min_jerk.mat' );
+data1 = data;
+data4 = data;
+
 % Load the dataset 
 load( 'learned_parameters/cosine.mat'   );
-data1 = data;
-
-load( 'learned_parameters/min_jerk.mat' );
 data2 = data;
 
 load( 'learned_parameters/radial.mat'   );
 data3 = data;
 
-%% [1B] Sequencing 2 Minimum-jerk Trajectory
+data_whole = { data1, data2, data3, data4 };
+
+data_whole{ 1 }.p0i = [ 1, 1, 1 ];
+data_whole{ 1 }.p0f = data_whole{ 1 }.p0i + data_whole{ 1 }.p0f;
+
+data_whole{ 2 }.p0i = [ 5, 2, 2 ];
+data_whole{ 2 }.p0f = data_whole{ 2 }.p0i + data_whole{ 2 }.p0f;
+
+data_whole{ 3 }.p0i = [ 2, 4, 2 ];
+data_whole{ 3 }.p0f = data_whole{ 3 }.p0i + data_whole{ 3 }.p0f;
+
+data_whole{ 4 }.p0i = [ 1, 4, 4 ];
+data_whole{ 4 }.p0f = data_whole{ 4 }.p0i + data_whole{ 4 }.p0f;
+
+
+%% [1B] Sequencing the Movements
 
 close all;
 
 % The time step of the simulation and its number of iteration
 dt = 1e-3;
-Nt = 6000;
+Nt = 14000;
 
 % The total time and its time array
 T     = dt * Nt;
 t_arr = dt * (0:(Nt-1));
 
-% First Min-jerk Trajectory with DMP
-s1_arr  = zeros( 1, Nt ); 
-y1_arr  = zeros( 2, Nt );
-dy1_arr = zeros( 2, Nt );
+% There are Four movements, in the following order
+% (1) Min-jerk-trajectory
+% (2) M-shape Looking Trajectory
+% (3) Swirl-like Trajectory
+% (4) Min-jerk-trajectory
 
-% Initial Position and Velocity of the First Movement
-y0_1  = [  3.0; 0.0 ];
-g1    = [  4.0; 2.0 ];
-dy0_1 = [ 0.0; 0.0 ];
+% The x_arr of the 4 movements
+% The state-vector is 1 + 3 + 3 = 7
+x_arr  = zeros( 4, 7, Nt );
+dx_arr = zeros( 4, 7 );
+x0_arr = zeros( 4, 7 );
 
-x1_init = [ cs.calc( 0 ); y0_1; dy0_1 ];
-x1_arr = zeros( 5, Nt );
+% The State-array 
+Az_arr = zeros( 4, 3, 3 );
+Bz_arr = zeros( 4, 3, 3 );
+A_arr  = zeros( 4, 7, 7 );
 
-% Second DMP
-s2_arr  = zeros( 1, Nt ); 
-y2_arr  = zeros( 2, Nt );
-dy2_arr = zeros( 2, Nt );
+for i = 1 : 4
+    az  = data_whole{ i }.alpha_z;
+    bz  = data_whole{ i }.beta_z;
+    tau = data_whole{ i }.tau;
+    
+    Az = az*bz/tau^2*eye( 3 );
+    Bz =    az/tau^1*eye( 3 );
 
-% Initial Position and Velocity of the Second Movement
-y0_2  = [  0.0; 2.0 ];
-g2    = [ 2.0; 0.0 ];
-dy0_2 = [  0.0; 0.0 ];
+    Az_arr( i, :, : ) = Az;
+    Bz_arr( i, :, : ) = Bz;
 
-% The DMPs
-x2_init = [ cs.calc( 0 ) ; y0_2; dy0_2 ];
-x2_arr = zeros( 5, Nt );
+    alpha_s = data_whole{ i }.alpha_s;
+    
+    A_arr( i, :, : ) = [   -alpha_s/tau,   zeros( 1, 3 ),   zeros( 1, 3 );
+                          zeros( 3, 1 ),   zeros( 3, 3 ),        eye( 3 );
+                          zeros( 3, 1 ),             -Az,           -Bz ];
+    
+end
 
-Az = alpha_z*beta_z/tau^2*eye( 2 );
-Bz =        alpha_z/tau*eye( 2 );
+% Setting the Initial Condition
+for i = 1 : 4
+    x_arr( i, 1  , 1 ) = data_whole{ i }.cs.calc( 0 );
+    x_arr( i, 2:4, 1 ) = data_whole{ i }.p0i ;
+    x_arr( i, 5:7, 1 ) = double( subs( data_whole{ i }.dp_sym, 0 ) ) ;
 
-A1 = [   -alpha_s/tau, 0, 0, 0, 0;
-        zeros( 2, 1 ), zeros(2, 2 ), eye( 2 );
-        zeros( 2, 1 ),          -Az,    -Bz ];
+    x0_arr( i, : ) = x_arr( i, :, 1 );
+end
 
-x1_curr  = x1_init;
-x2_curr  = x2_init;
+% The initial time start 
+t0i_arr = [ 0, 3.0, 7.0, 12.0 ];
 
-% Coupled
-x12_curr = x2_init;
-x12_arr = zeros( 5, Nt );
-
+x_curr = x0_arr;
 t = 0;
-tmp_gain = 0;
-t0i1 = 1.8;
-t0i2 = 0.5;
 % Forward Integration
 for i = 0 : (Nt-1)
 
-    % First DMP
-    if t <= t0i1
-        x1_arr( :, i+1 ) = x1_init;
-
-    % During the movement
-    elseif t0i1 <= t
-
-        % taking off the initial time offset
-        t_tmp = t - t0i1;
-
-        % Calculating the input from the weights
-        % First, check if whole activation value is 0
-        phi_sum1 = fs.calc_whole_at_t( t_tmp );
+    % Integrating over the movement
+    for j = 1 : 4
         
-        f_input_x = 0;
-        if phi_sum1 ~= 0
-            f_input_x = fs.calc_whole_weighted_at_t( t_tmp, w_arr_LSS )/phi_sum1;
-            f_input_x = f_input_x*( g1( 1 )-y0_1( 1 ) )*x1_curr( 1 );
-        end
+        if t <= t0i_arr( j )
+            x_arr( j, :, i + 1 ) = x0_arr( j, : );
+            x_curr( j, : ) = x0_arr( j, : );
 
-        phi_sum2 = fs.calc_whole_at_t( t_tmp );
-        
-        f_input_y = 0;
-        if phi_sum2 ~= 0
-            f_input_y = fs.calc_whole_weighted_at_t( t_tmp, w_arr_LSS )/phi_sum2;
-            f_input_y = f_input_y*( g1( 2 )-y0_1( 2 ) )*x1_curr( 1 );
-        end
+        else
+            % taking off the initial time offset
+            t_tmp = t - t0i_arr( j );
 
-        % During the movement
-        if t0i + D <= t        
-            f_input_x = 0;
-            f_input_y = 0;
-        end
+            % Getting the 3D nonlinear forcing term 
+            f_arr = zeros( 3, 1 );
 
-        dx = A1 * x1_curr + 1/tau^2*[ zeros(3,1); f_input_x;f_input_y ]+ [ zeros(3,1); Az*g1 ];
-        x1_curr = x1_curr + dx * dt;
-        x1_arr(:, i+1 ) = x1_curr;
+            y0    = data_whole{ j }.p0i;                
+            g     = data_whole{ j }.p0f;
+            w_arr = data_whole{ j }.weight;
 
+            for k = 1 : 3
+                % Calculating the input from the weights
+                % First, check if whole activation value is 0
+                phi_sum = data_whole{ j }.fs.calc_whole_at_t( t_tmp );
 
-    end
-    
-    % Second DMP
-    if t <= t0i2
-        x2_arr( :, i+1 ) = x2_init;
+                if phi_sum ~= 0
+                    f_arr( k ) = data_whole{ j }.fs.calc_whole_weighted_at_t( t_tmp, w_arr( k, : ) )/phi_sum;
+                    f_arr( k ) = f_arr( k )*( g( k )-y0( k ) )*x_curr( j, 1 );
+                end
 
-    % During the movement
-    elseif t0i2 <= t
-
-        % taking off the initial time offset
-        t_tmp = t - t0i2;
-
-        % Calculating the input from the weights
-        % First, check if whole activation value is 0
-        phi_sum1 = fs.calc_whole_at_t( t_tmp );
-        
-        f_input_x = 0;
-        if phi_sum1 ~= 0
-            f_input_x = fs.calc_whole_weighted_at_t( t_tmp, w_arr_LSS )/phi_sum1;
-            f_input_x = f_input_x*( g2( 1 )-y0_2( 1 ) )*x2_curr( 1 );
-        end
-
-        phi_sum2 = fs.calc_whole_at_t( t_tmp );
-        
-        f_input_y = 0;
-        if phi_sum2 ~= 0
-            f_input_y = fs.calc_whole_weighted_at_t( t_tmp, w_arr_LSS )/phi_sum2;
-            f_input_y = f_input_y*( g2( 2 )-y0_2( 2 ) )*x2_curr( 1 );
-        end
-
-        % During the movement
-        if t0i + D <= t        
-            f_input_x = 0;
-            f_input_y = 0;
-        end
-
-        dx = A1 * x2_curr + 1/tau^2*[ zeros(3,1); f_input_x;f_input_y ]+ [ zeros(3,1); Az*g2 ];
-        x2_curr = x2_curr + dx * dt;
-        x2_arr( :, i+1 ) = x2_curr;
-
-    end    
-
-
-    % Coupled DMP
-    if t <= t0i2
-        x12_arr( :, i+1 ) = x2_init;
-
-    % During the movement
-    elseif t0i2 <= t
-
-        % taking off the initial time offset
-        t_tmp = t - t0i2;
-
-        % Calculating the input from the weights
-        % First, check if whole activation value is 0
-        phi_sum1 = fs.calc_whole_at_t( t_tmp );
-        
-        f_input_x = 0;
-        if phi_sum1 ~= 0
-            f_input_x = fs.calc_whole_weighted_at_t( t_tmp, w_arr_LSS )/phi_sum1;
-            f_input_x = f_input_x*( g2( 1 )-y0_2( 1 ) )*x12_curr( 1 );
-        end
-
-        phi_sum2 = fs.calc_whole_at_t( t_tmp );
-        
-        f_input_y = 0;
-        if phi_sum2 ~= 0
-            f_input_y = fs.calc_whole_weighted_at_t( t_tmp, w_arr_LSS )/phi_sum2;
-            f_input_y = f_input_y*( g2( 2 )-y0_2( 2 ) )*x12_curr( 1 );
-        end
-
-        % Add on off 
-        if t >= t0i2 + D*0.6;
-            tmp_gain = tmp_gain + 0.004;
-            if tmp_gain >= 1
-               tmp_gain = 1; 
             end
-            
+
+            % After the movement
+            if t0i_arr( j ) + data_whole{ j }.tau <= t        
+                f_arr = zeros( 3, 1 );
+            end         
+
+            % Update the State Vector
+            A  = squeeze(  A_arr( j, :, : ) );
+            Az = squeeze( Az_arr( j, :, : ) );
+    
+            dx = A * x_curr( j, : )' + 1/data_whole{ j }.tau^2*[ zeros(4,1); f_arr ]+ [ zeros(4,1); Az*data_whole{ j }.p0f' ];
+            x_curr( j, : ) = x_curr( j, : ) + dx' * dt;
+            x_arr( j, :, i+1 ) = x_curr( j, : );            
+
         end
-
-        dx = A1 * x12_curr + 1/tau^2*[ zeros(3,1); f_input_x;f_input_y ]+ [ zeros(3,1); Az*g2 ] + tmp_gain  * ( 2*eye( 5 ) * ( x1_curr - x12_curr ) + [ zeros(3,1); Az*g1 ] - [ zeros(3,1); Az*g2 ] );        
-        
-        x12_curr = x12_curr + dx * dt;
-        x12_arr(:, i+1 ) = x12_curr;
-
-    end    
-    
-    
-    t = t + dt;
+      
+    end
+    t = t+dt;
 end
 
+%% Plotting the Figures 
+x1 = squeeze( x_arr( 1, 2, : ) );
+y1 = squeeze( x_arr( 1, 3, : ) );
+z1 = squeeze( x_arr( 1, 4, : ) );
+
+x2 = squeeze( x_arr( 2, 2, : ) );
+y2 = squeeze( x_arr( 2, 3, : ) );
+z2 = squeeze( x_arr( 2, 4, : ) );
+
+x3 = squeeze( x_arr( 3, 2, : ) );
+y3 = squeeze( x_arr( 3, 3, : ) );
+z3 = squeeze( x_arr( 3, 4, : ) );
+
+x4 = squeeze( x_arr( 4, 2, : ) );
+y4 = squeeze( x_arr( 4, 3, : ) );
+z4 = squeeze( x_arr( 4, 4, : ) );
+
+f = figure( ); a = axes( 'parent', f );
+hold on;
+
+plot3( x1, y1, z1, 'color', 'black', 'linewidth', 3 )
+plot3( x2, y2, z2, 'color', 'black', 'linewidth', 3 )
+plot3( x3, y3, z3, 'color', 'black', 'linewidth', 3 )
+plot3( x4, y4, z4, 'color', 'black', 'linewidth', 3 )
+
+
+%%
 % Draw an Animation 
 f = figure( ); a = axes( 'parent', f );
 hold on
