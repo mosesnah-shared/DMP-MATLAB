@@ -77,6 +77,7 @@ switch name_traj
         py = p_tmp( 2 );
         pz = p_tmp( 3 );
 
+        p0i = double( subs( p_tmp, t_sym, 0 )' );
         p0f = double( subs( p_tmp, t_sym, D )' );
 
     otherwise
