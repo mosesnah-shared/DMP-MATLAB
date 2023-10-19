@@ -18,7 +18,7 @@ is_check = true;
 syms t_sym
 
 % Name of the Trajectory which we aim to learn
-name_traj = 'radial';
+name_traj = 'cosine';
 
 % Define the Trajectory, which is a 3D example.
 p0i = [ 0, 0, 0 ];
@@ -36,11 +36,13 @@ switch name_traj
         pz = p0i( 3 ) + ( p0f( 3 ) - p0i( 3 ) ) * ( 10 * tn^3 - 15 * tn^4 + 6 * tn^5 );
 
     case 'cosine'
-        v  = 0.5;
+        l  = 1.5;
+        D  = 5.0;
+        v  = l/D;        
         tn = t_sym/D;        
         px = p0i( 1 );
-        py = p0i( 2 ) + v*D * ( 10 * tn^3 - 15 * tn^4 + 6 * tn^5 );
-        pz = p0i( 3 ) + 2*( cos( 2*pi/v/D * t_sym ) - 1 );
+        py = p0i( 2 ) + l * ( 10 * tn^3 - 15 * tn^4 + 6 * tn^5 );
+        pz = p0i( 3 ) + 2*( cos( 2*2*pi/l * ( l * tn ) ) - 1 );
     
         % Add some rotation too
         p_tmp = [px; py; pz];
@@ -57,6 +59,7 @@ switch name_traj
     case 'radial'
         r0i = 3.0;
         r0f = 1.0;
+        D   = 5.0;
 
         tn = t_sym/D;         
 
