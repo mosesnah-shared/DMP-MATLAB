@@ -38,10 +38,9 @@ data_whole{ 4 }.p0f = data_whole{ 4 }.p0i + data_whole{ 4 }.p0f;
 
 close all;
 
-
 % The initial time start 
 ttmp0 = 1.0;
-ttmp1 = data_whole{ 1 }.tau + 0.5;
+ttmp1 = data_whole{ 1 }.tau + 0.0;
 ttmp2 = data_whole{ 2 }.tau + 0.0;
 ttmp3 = data_whole{ 3 }.tau + 0.0;
 
@@ -70,7 +69,9 @@ x_arr  = zeros( 4, 7, Nt );
 dx_arr = zeros( 4, 7 );
 x0_arr = zeros( 4, 7 );
 
-x_coupled = zeros( 7, Nt );
+x_coupled_curr = zeros( 7, 1 );
+x_coupled  = zeros( 7, Nt );
+dx_coupled = zeros( 7, Nt );
 
 % The State-array 
 Az_arr = zeros( 4, 3, 3 );
@@ -78,9 +79,13 @@ Bz_arr = zeros( 4, 3, 3 );
 A_arr  = zeros( 4, 7, 7 );
 
 % k_gains
-k = [ 3, 3, 3 ];
+k_gain = [ 5, 5, 1 ];
 
 % Timing for activation
+% ttmp_arr = [ ttmp0, ttmp1, ttmp2, ttmp3 ];
+t_start_arr = [ t0i_arr( 1 ) + 0.8*data_whole{ 1 }.tau, ...
+                t0i_arr( 2 ) + 0.8*data_whole{ 2 }.tau, ...
+                t0i_arr( 3 ) + 0.8*data_whole{ 3 }.tau ];
 
 for i = 1 : 4
     az  = data_whole{ i }.alpha_z;
@@ -112,6 +117,7 @@ end
 
 x_curr = x0_arr;
 t = 0;
+act_arr = zeros( 1, 3 );
 
 % Forward Integration
 for i = 0 : (Nt-1)
@@ -120,9 +126,13 @@ for i = 0 : (Nt-1)
     for j = 1 : 4
         
         if t <= t0i_arr( j )
-            x_arr( j, :, i + 1 ) = x0_arr( j, : );
-            x_curr( j, : ) = x0_arr( j, : );
-
+            x_arr( j, :, i + 1 )  = x0_arr( j, : );
+            x_curr( j, : )        = x0_arr( j, : );
+            
+            if j == 1
+                x_coupled( :, i + 1 ) = x0_arr( j, : );   
+                x_coupled_curr        = x0_arr( j, : )';   
+            end
         else
             % taking off the initial time offset
             t_tmp = t - t0i_arr( j );
@@ -155,17 +165,44 @@ for i = 0 : (Nt-1)
             A  = squeeze(  A_arr( j, :, : ) );
             Az = squeeze( Az_arr( j, :, : ) );
     
-            dx = A * x_curr( j, : )' + 1/data_whole{ j }.tau^2*[ zeros(4,1); f_arr ]+ [ zeros(4,1); Az*data_whole{ j }.p0f' ];
+            dx = A * x_curr( j, : )' + 1/data_whole{ j }.tau^2*[ zeros(4,1); f_arr ] + [ zeros(4,1); Az*data_whole{ j }.p0f' ];
             x_curr( j, : ) = x_curr( j, : ) + dx' * dt;
-            x_arr( j, :, i+1 ) = x_curr( j, : );            
+            x_arr( j, :, i+1 ) = x_curr( j, : );    
+
+            % For the first movement, add the dynamics of the coupling
+                % For the transition time 
+                if     t_start_arr( 1 ) <= t && t_start_arr( 2 ) >= t
+                      act_arr( 1 ) = act_arr( 1 ) + 0.001;
+                      if act_arr( 1 ) >= 1 
+                        act_arr( 1 ) = 1;
+                      end
+                      dx_coupled = dx - act_arr( 1 ) * k_gain( 1 ) * ( x_coupled_curr - x_curr( 2, : )' );
+
+                elseif t_start_arr( 2 ) <= t && t_start_arr( 3 ) >= t
+                      act_arr( 2 ) = act_arr( 2 ) + 0.001;
+                      if act_arr( 2 ) >= 1 
+                        act_arr( 2 ) = 1;
+                      end                    
+                      dx_coupled = dx - act_arr( 2 ) * k_gain( 2 ) * ( x_coupled_curr - x_curr( 3, : )' );
+
+                elseif t <= t_start_arr( 1 )
+                      dx_coupled = dx;
+                else
+                      act_arr( 3 ) = act_arr( 3 ) + 0.001;
+                      if act_arr( 3 ) >= 1 
+                        act_arr( 3 ) = 1;
+                      end 
+                      dx_coupled = dx - act_arr( 3 ) * k_gain( 3 ) * ( x_coupled_curr - x_curr( 4, : )' );
+                end
+                
+                x_coupled_curr = x_coupled_curr + dx_coupled * dt;
+                x_coupled( :, i+1 ) = x_coupled_curr;
+
 
         end
       
     end
-    
-    % Integrating the coupled movements
-    
-    
+        
     t = t+dt;
 end
 
@@ -186,6 +223,10 @@ x4 = squeeze( x_arr( 4, 2, : ) );
 y4 = squeeze( x_arr( 4, 3, : ) );
 z4 = squeeze( x_arr( 4, 4, : ) );
 
+xc = squeeze( x_coupled( 2, : ) );
+yc = squeeze( x_coupled( 3, : ) );
+zc = squeeze( x_coupled( 4, : ) );
+
 x_arr_whole = [ x1, x2, x3, x4 ];
 y_arr_whole = [ y1, y2, y3, y4 ];
 z_arr_whole = [ z1, z2, z3, z4 ];
@@ -202,6 +243,8 @@ plot3( x1, y1, z1, 'color', c_arr( 1, : ), 'linewidth', 3 )
 plot3( x2, y2, z2, 'color', c_arr( 2, : ), 'linewidth', 3 )
 plot3( x3, y3, z3, 'color', c_arr( 3, : ), 'linewidth', 3 )
 plot3( x4, y4, z4, 'color', c_arr( 4, : ), 'linewidth', 3 )
+
+
 
 % Start and end of the positions
 scatter3( x1(   1 ), y1(   1 ), z1(   1 ), 200, 'filled', 'o'     , 'markerfacecolor', c_arr( 1, : ), 'markeredgecolor', 'black' );
@@ -229,6 +272,8 @@ s2 = scatter3( x2( 1 ), y2( 1 ), z2( 1 ), 400, 'filled', 'o' , 'markerfacecolor'
 s3 = scatter3( x3( 1 ), y3( 1 ), z3( 1 ), 400, 'filled', 'o' , 'markerfacecolor', c_arr( 3, : ), 'markeredgecolor', 'black' );
 s4 = scatter3( x4( 1 ), y4( 1 ), z4( 1 ), 400, 'filled', 'o' , 'markerfacecolor', c_arr( 4, : ), 'markeredgecolor', 'black' );
 
+scc = scatter3( xc( 1 ), yc( 1 ), zc( 1 ), 500, 'filled', 'o' , 'markerfacecolor', [ 0.5, 0.5, 0.5], 'markeredgecolor', 'black', 'markerfacealpha', 0.5 );
+
 s_arr = { s1, s2, s3, s4 };
 
 v = VideoWriter( 'video.mp4','MPEG-4' );
@@ -243,10 +288,11 @@ for i = 1 : tmp_step : Nt
         set( s_arr{ j }, 'XData', x_arr_whole( i, j ), 'YData', y_arr_whole( i, j ), 'ZData', z_arr_whole( i, j ) );
     end
     
+    set( scc, 'XData', xc( i + 1 ), 'YData', yc( i + 1 ), 'ZData', zc( i + 1 ))
+
     drawnow 
     
     set( t1, 'string', sprintf( 'Time %.3f s', t_arr( i ) ) );
-    
     
     tmp_frame = getframe( f );
     writeVideo( v,tmp_frame );
