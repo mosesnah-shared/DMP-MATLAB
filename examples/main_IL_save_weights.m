@@ -18,43 +18,44 @@ is_check = true;
 syms t_sym
 
 % Name of the Trajectory which we aim to learn
+% There are three types:
+% [1] min_jerk
+% [2] cosine
+% [3] radial
 name_traj = 'cosine';
 
 % Define the Trajectory, which is a 3D example.
+% We first set the initial position as origin, since it doesn't matter
 p0i = [ 0, 0, 0 ];
-D   = 3.0;
 
 % Position
 switch name_traj
 
     case 'min_jerk'
-        p0f = [ 1, 1, 1 ];      
+        D   = 3.0;
+        p0f = [ 0.5, 1.0, 1.5 ];      
         tn  = t_sym/D;
 
-        px = p0i( 1 ) + ( p0f( 1 ) - p0i( 1 ) ) * ( 10 * tn^3 - 15 * tn^4 + 6 * tn^5 );
-        py = p0i( 2 ) + ( p0f( 2 ) - p0i( 2 ) ) * ( 10 * tn^3 - 15 * tn^4 + 6 * tn^5 );
-        pz = p0i( 3 ) + ( p0f( 3 ) - p0i( 3 ) ) * ( 10 * tn^3 - 15 * tn^4 + 6 * tn^5 );
+        px = p0f( 1 ) * ( 10 * tn^3 - 15 * tn^4 + 6 * tn^5 );
+        py = p0f( 2 ) * ( 10 * tn^3 - 15 * tn^4 + 6 * tn^5 );
+        pz = p0f( 3 ) * ( 10 * tn^3 - 15 * tn^4 + 6 * tn^5 );
 
     case 'cosine'
-        l  = 1.5;
+        l  = 0.3;
         D  = 5.0;
         v  = l/D;        
         tn = t_sym/D;        
-        px = p0i( 1 );
-        py = p0i( 2 ) + l * ( 10 * tn^3 - 15 * tn^4 + 6 * tn^5 );
-        pz = p0i( 3 ) + 2*( cos( 2*2*pi/l * ( l * tn ) ) - 1 );
+        px = 0;
+        py = l * ( 10 * tn^3 - 15 * tn^4 + 6 * tn^5 );
+        pz = 0.05 * ( cos( 2*2*pi/l * ( l * tn ) ) - 1 );
     
         % Add some rotation too
         p_tmp = [px; py; pz];
         p_tmp = rotx( 20 ) * p_tmp;
-        p_tmp = roty( 30 ) * p_tmp;
-        p_tmp = rotz( 20 ) * p_tmp;
 
         px = p_tmp( 1 );
         py = p_tmp( 2 );
         pz = p_tmp( 3 );
-
-        p0f = double( subs( p_tmp, t_sym, D )' );
 
     case 'radial'
         r0i = 3.0;
@@ -66,28 +67,22 @@ switch name_traj
         rt    = r0i + ( r0f - r0i ) * ( -2*tn^3 + 3*tn^2 );
         theta = 2 * pi * ( -tn^4 + 2*tn^2 );
 
-        px = p0i( 1 );
+        px = 0;
         py = rt * cos( theta );
         pz = rt * sin( theta );
 
         % Add some rotation too
         p_tmp = [px; py; pz];
-        p_tmp = rotx( 20 ) * p_tmp;
-        p_tmp = roty( 30 ) * p_tmp;
-        p_tmp = rotz( 20 ) * p_tmp;
+        p_tmp = rotx( -30 ) * p_tmp;
 
         px = p_tmp( 1 );
         py = p_tmp( 2 );
         pz = p_tmp( 3 );
 
-        p0i = double( subs( p_tmp, t_sym, 0 )' );
-        p0f = double( subs( p_tmp, t_sym, D )' );
-
     otherwise
-
+        error( 'Wrong input: %s', name_traj )
 end
     
-
 % Velocity
 dpx = diff( px, t_sym );
 dpy = diff( py, t_sym );
@@ -99,9 +94,9 @@ ddpy = diff( dpy, t_sym );
 ddpz = diff( dpz, t_sym );
 
 % Saving these elements as symbolic array.
-p_sym   = {   px,   py,   pz };
-dp_sym  = {  dpx,  dpy,  dpz };
-ddp_sym = { ddpx, ddpy, ddpz };
+p_func   = matlabFunction( [   px;   py;   pz ] );
+dp_func  = matlabFunction( [  dpx,  dpy,  dpz ] );
+ddp_func = matlabFunction( [ ddpx, ddpy, ddpz ] );
 
 % Generating the actual data from the symbolic form 
 % These data will be used for Imitation Learning
@@ -114,12 +109,12 @@ P     = length( t_arr );
 ddp_data = zeros( 3, P );
 
 for i = 1 : P
-    for j = 1 : 3
-         p_data( j, i ) = double( subs(   p_sym{ j }, t_sym, t_arr( i ) ) );
-        dp_data( j, i ) = double( subs(  dp_sym{ j }, t_sym, t_arr( i ) ) );
-       ddp_data( j, i ) = double( subs( ddp_sym{ j }, t_sym, t_arr( i ) ) );
-    end
+      p_data( :, i ) =   p_func( t_arr( i ) );
+     dp_data( :, i ) =  dp_func( t_arr( i ) );
+    ddp_data( :, i ) = ddp_func( t_arr( i ) );
 end
+
+p0i = p_func( 0 ); p0f = p_func( D );
 
 if is_check 
     f = figure( );
@@ -135,7 +130,12 @@ if is_check
 end
 
 f = figure( ); a = axes( 'parent', f );
-plot3( a, p_data( 1, : ), p_data( 2, : ), p_data( 3, : ))
+plot3( a, p_data( 1, : ), p_data( 2, : ), p_data( 3, : ) )
+axis equal
+view( 90, 0 )
+xlabel( 'X (m)'); ylabel( 'Y (m)'); zlabel( 'Z (m)')
+
+clear px py pz dpx dpy dpz ddpx ddpy ddpz;
 
 %% ---- [1B] Learning the Weights for Imitation Learning
 
@@ -159,19 +159,18 @@ ts_arr = { tsx, tsy, tsz };
 
 fs = NonlinearForcingTerm( cs, N );
 
-
-%% ---- [1C] Learning Weights via Least-Square
-
+% Learning the weights for 3-DOF
 w_arr = zeros( 3, N );
 
 for i = 1 : 3
 
     if p0f( i ) - p0i( i ) == 0
+        fprintf( 'Degree of freedom %d is zero amplitude\n', i );
         continue
     end
 
     phi_mat = zeros( P, N );    
-    f_arr = ts_arr{ i }.get_desired( p_data( i, : ), dp_data( i, : ), ddp_data( i, : ), p0f( i ) );
+    f_arr = ts_arr{ i }.get_desired( p_data( i, : ), dp_data( i, : ), ddp_data( i, : ), p0f( i )  );
 
     % Over the Time Array
     for j = 1 : P
@@ -191,11 +190,6 @@ end
 
 %% ---- [1D] Rollout Generating a Full trajectory with the Transformation System
 
-% Resetting the Transformation System
-for i = 1 : 3
-    ts_arr{ i }.reset( )
-end
-
 % Initial Time and time step
 t0i = 2.0;
 dt  = 1e-3;
@@ -203,7 +197,7 @@ Nt  = 8000;
 
 % The total time and its time array
 T      = dt * Nt;
-t_arr2 = dt * (0:(Nt-1));
+t_arr2 = dt * ( 0:(Nt-1) );
 
 % For plotting and saving the data
 y_arr  = zeros( 3, Nt );
@@ -211,10 +205,29 @@ z_arr  = zeros( 3, Nt );
 dy_arr = zeros( 3, Nt );
 dz_arr = zeros( 3, Nt );
 
+% p0i reset
+offset = [ 0.5, 0.2, 0.2 ]';
+% offset = [ 0.0, 0.0, 0.0 ]';
+
+  p_init =   p0i + offset;
+ dp_init =  dp_func( 0 );
+ddp_init = ddp_func( 0 );
+
+% Set the initial condition of the transformation system
+for i = 1 : 3
+    ts_arr{ i }.y0 =  p_init( i );
+    ts_arr{ i }.z0 = dp_init( i ) * tau;
+end
+
+% Resetting the Transformation System
+for i = 1 : 3
+    ts_arr{ i }.reset( )
+end
+
 % Initial Condition
- y_arr( :, 1 )  =  p_data( :, 1 );
-dy_arr( :, 1 )  = dp_data( :, 1 );
- z_arr( :, 1 )  = dp_data( :, 1 ) * tau;
+ y_arr( :, 1 )  = p_init;
+dy_arr( :, 1 )  = dp_init;
+ z_arr( :, 1 )  = dp_init * tau;
 
 % The analytical data 
   p_arr_test = zeros( 3, Nt );
@@ -228,10 +241,6 @@ for i = 0 : (Nt-1)
     
     for k = 1 : 3
 
-        if sum( abs( w_arr( k, : ) ) ) == 0
-            continue;
-        end
-
         % Before conducting the movement
         % Maintaining that posture
         if t <= t0i
@@ -239,13 +248,14 @@ for i = 0 : (Nt-1)
            dy_arr( k, i + 1 ) = dy_arr( k, 1 );            
             z_arr( k, i + 1 ) =  z_arr( k, 1 );
     
-              p_arr_test( k, i + 1 ) =   p_data( k, 1 );
-             dp_arr_test( k, i + 1 ) =  dp_data( k, 1 );
-            ddp_arr_test( k, i + 1 ) = ddp_data( k, 1 );
+              p_arr_test( k, i + 1 ) =   p_init( k );
+             dp_arr_test( k, i + 1 ) =  dp_init( k );
+            ddp_arr_test( k, i + 1 ) = 0;
     
-        % During the movement
+        % After the initial time
         elseif t0i <= t
             
+            % During the movement
             if t<= t0i + D
     
                 % taking off the initial time offset
@@ -259,23 +269,29 @@ for i = 0 : (Nt-1)
     
                 if phi_sum ~= 0
                     f_input = fs.calc_whole_weighted_at_t( t_tmp, w_arr( k, : ) )/phi_sum;
-                    f_input = f_input*( p0f( k )- p0i( k ) )*cs.calc( t_tmp );
+                    f_input = f_input * ( p0f( k ) - p0i( k ) ) *cs.calc( t_tmp );
                 end
                 
+                  ptmp =   p_func( t_tmp );
+                 dptmp =  dp_func( t_tmp );
+                ddptmp = ddp_func( t_tmp );
+
                 % Position Array
-                  p_arr_test( k, i + 1 ) = double( subs(   p_sym{ k }, t_sym, t_tmp ) );
-                 dp_arr_test( k, i + 1 ) = double( subs(  dp_sym{ k }, t_sym, t_tmp ) );
-                ddp_arr_test( k, i + 1 ) = double( subs( ddp_sym{ k }, t_sym, t_tmp ) );       
+                  p_arr_test( k, i + 1 ) =   ptmp( k ) + offset( k );
+                 dp_arr_test( k, i + 1 ) =  dptmp( k );
+                ddp_arr_test( k, i + 1 ) = ddptmp( k );       
     
             else
                 f_input = 0; 
     
-                  p_arr_test( k, i + 1 ) =   p_data( k, end );
+                 ptmp = p_func( D );
+                 
+                  p_arr_test( k, i + 1 ) =  ptmp( k )+ offset( k );
                  dp_arr_test( k, i + 1 ) =    0;
                 ddp_arr_test( k, i + 1 ) =    0;
             end
     
-            [ y, z, dy, dz ] = ts_arr{ k }.step( p0f( k ), f_input, dt );
+            [ y, z, dy, dz ] = ts_arr{ k }.step( p0f( k ) + offset( k ), f_input, dt );
             y_arr(  k, i + 1 ) = y;
             z_arr(  k, i + 1 ) = z; 
             dy_arr( k, i + 1 ) = dy;
@@ -320,9 +336,9 @@ plot3( p_arr_test( 1, : ), p_arr_test( 2, : ), p_arr_test( 3, : ), 'color', 'k' 
 
 % The Weighting Matrix and additional Data
 data = struct;
-data.p_sym   =   p_sym;
-data.dp_sym  =  dp_sym;
-data.ddp_sym = ddp_sym;
+data.p_func   =   p_func;
+data.dp_func  =  dp_func;
+data.ddp_func = ddp_func;
 
 data.name = name_traj;
 data.alpha_z = alpha_z;
@@ -331,9 +347,11 @@ data.alpha_s = alpha_s;
 
 data.weight  = w_arr;
 data.p0i = p0i;
-data.p0f = p0f;
-data.tau = tau;
+data.p0f = p0i + p0f;
 
+data.y_arr = y_arr;
+data.tau = tau;
+ 
 data.cs = cs;
 data.fs = fs;
 data.ts_arr = ts_arr;
