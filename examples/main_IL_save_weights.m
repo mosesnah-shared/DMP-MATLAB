@@ -22,7 +22,7 @@ syms t_sym
 % [1] min_jerk
 % [2] cosine
 % [3] radial
-name_traj = 'cosine';
+name_traj = 'min_jerk';
 
 % Define the Trajectory, which is a 3D example.
 % We first set the initial position as origin, since it doesn't matter
@@ -33,7 +33,7 @@ switch name_traj
 
     case 'min_jerk'
         D   = 3.0;
-        p0f = [ 0.5, 1.0, 1.5 ];      
+        p0f = [ 0.0, 0.20, 0.20 ];      
         tn  = t_sym/D;
 
         px = p0f( 1 ) * ( 10 * tn^3 - 15 * tn^4 + 6 * tn^5 );
@@ -58,8 +58,8 @@ switch name_traj
         pz = p_tmp( 3 );
 
     case 'radial'
-        r0i = 3.0;
-        r0f = 1.0;
+        r0i = 0.15;
+        r0f = 0.05;
         D   = 5.0;
 
         tn = t_sym/D;         
