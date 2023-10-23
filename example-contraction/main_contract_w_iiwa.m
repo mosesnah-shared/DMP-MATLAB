@@ -12,7 +12,12 @@ anim = Animation( 'Dimension', 3, 'xLim', [-0.1, 0.8], 'yLim', [-0.4, 0.4], 'zLi
 anim.init( );
 % anim.attachRobot( robot )  
 
+
+
+
 load( 'learned_parameters/min_jerk.mat' );
+
+
 data1 = data;
 data4 = data;
 
@@ -72,8 +77,8 @@ t0i_arr = cumsum( ttmp_arr );
 
 
 % The time step of the simulation and its number of iteration
-dt = 1e-3;
-Nt = round( sum( ttmp_arr )/dt ) + 5000;
+dt = 0.003;
+Nt = round( sum( ttmp_arr )/dt ) + 1000;
 
 % The total time and its time array
 T     = dt * Nt;
@@ -283,11 +288,11 @@ scc = scatter3( anim.hAxes, xc( 1 ), yc( 1 ), zc( 1 ), 3.0*mk, 'filled', 'o' , '
 
 s_arr = { s1, s2, s3, s4 };
 
-v = VideoWriter( 'video.mp4','MPEG-4' );
-v.FrameRate = 30;
+% v = VideoWriter( 'video.mp4','MPEG-4' );
+% v.FrameRate = 30;
 t1 = title( anim.hAxes, sprintf( 'Time %.3f s', 0) );
 
-open( v );
+% open( v );
 tmp_step = 33;
 for i = 1 : tmp_step : Nt
     
@@ -302,10 +307,19 @@ for i = 1 : tmp_step : Nt
     set( t1, 'string', sprintf( 'Time %.3f s', t_arr( i ) ) );
     
     tmp_frame = getframe( anim.hFig );
-    writeVideo( v,tmp_frame );
+    % writeVideo( v,tmp_frame );
     i
 end
-close( v );
+% close( v );
+
+%% [1C-1] Save the Data
+
+y_arr = [ xc; yc; zc ];
+
+dir_name  = './data/example7/';
+
+writematrix(  y_arr - y_arr( :, 1 ), [ dir_name, 'pos_data.csv' ] ) 
+
 
 %% [1D] Actual Control of iiwa with xc, yc, zc
 
