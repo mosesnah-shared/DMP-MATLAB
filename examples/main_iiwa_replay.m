@@ -13,7 +13,7 @@ raw_data = parse_txt( [ file_name, '.txt' ], 0 );
 
 t_arr = raw_data( :, 1 )' - raw_data( 1, 1 );
 q_arr = raw_data( :, 2:8 )';
-p0_arr = raw_data( :, 10:end )';
+p0_arr = raw_data( :, 13:end )';
 
 load( 'learned_parameters/min_jerk.mat' );
 
@@ -53,7 +53,7 @@ c_arr = [ 0.0000, 0.4470, 0.7410;
 robot = iiwa14( 'high' );
 robot.init( );
 
-anim = Animation( 'Dimension', 3, 'xLim', [-0.2,1.2], 'yLim', [-0.7,0.7], 'zLim', [0,1.4], 'isSaveVideo', false );
+anim = Animation( 'Dimension', 3, 'xLim', [-0.1,1.1], 'yLim', [-0.7,0.5], 'zLim', [0,1.2], 'isSaveVideo', true );
 anim.init( );
 anim.attachRobot( robot )  
     
@@ -79,6 +79,7 @@ scatter3( anim.hAxes, data3.y_arr( 1, end ), data3.y_arr( 2, end ), data3.y_arr(
 
 scatter3( anim.hAxes, data4.y_arr( 1, 1 ), data4.y_arr( 2, 1 ), data4.y_arr( 3, 1 ), mk , 'filled', 'o'     , 'markerfacecolor', c_arr( 4, : ), 'markeredgecolor', 'black' );
 scatter3( anim.hAxes, data4.y_arr( 1, end ), data4.y_arr( 2, end ), data4.y_arr( 3, end ), mk , 'filled', 'square', 'markerfacecolor', c_arr( 4, : ), 'markeredgecolor', 'black' );
+
 
 
 for i = 1 : length( t_arr )
