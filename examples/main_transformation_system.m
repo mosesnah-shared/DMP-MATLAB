@@ -20,7 +20,7 @@ for tmp = [0.1,0.25, 0.5, 0.75, 1.0, 2.5]
     y0      = 0.0;
     z0      = 0.0;
     
-    trans_sys = TransformationSystem( alpha_z, beta_z, tau, y0, z0 );
+    trans_sys = TransformationSystem( alpha_z, beta_z, tau );
     
     dt = 1e-3;
     Nt = 50000;

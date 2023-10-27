@@ -31,10 +31,8 @@ a2 = subplot( 2, 1, 2 );
 hold( a1, 'on' );
 hold( a2, 'on' );
 
-for i = 1:N
-    plot( a1,          t_arr  , fs.calc_ith( t_arr, i ), 'color', 'r' );
-    plot( a2, cs.calc( t_arr ), fs.calc_ith( t_arr, i ), 'color', 'b' );    
-end
+plot( a1,          t_arr  , fs.calc_ith_arr( t_arr, 1:N ), 'color', 'r' );
+plot( a2, cs.calc( t_arr ), fs.calc_ith_arr( t_arr, 1:N ), 'color', 'b' );    
 
 % Overlap the whole activation
 plot( a1, t_arr, fs.calc_whole_at_t( t_arr ), 'color', 'k' )

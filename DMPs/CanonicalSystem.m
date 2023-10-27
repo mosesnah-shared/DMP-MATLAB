@@ -1,4 +1,4 @@
-classdef CanonicalSystem < handle
+ classdef CanonicalSystem < handle
     
     properties       
         
@@ -10,7 +10,7 @@ classdef CanonicalSystem < handle
         % For Rhythmic movement: Period of the movement divided by 2pi
         tau 
         
-        % Must be Positive value
+        % For Discrete movement: must be positive value
         alpha_s
     end
 
@@ -26,7 +26,6 @@ classdef CanonicalSystem < handle
             % -------           
             %   Moses C. Nah    mosesnah@mit.edu
             % 
-            %
             % Parameters
             % ----------
             %   (1) type - 'discrete' or 'rhythmic'
@@ -35,8 +34,8 @@ classdef CanonicalSystem < handle
             %             For 'discrete' movement: Duration of the movement
             %             For 'rhythmic' movement: Period of the movement divide by 2pi
             %
-            %   (3) alpha_s - positive constant, if 'rhythmic', then 
-            %                 value is ignored
+            %   (3) alpha_s - positive constant. 
+            %                 If 'rhythmic', then value is ignored
             %
             % ===========================================================================
             
@@ -58,32 +57,35 @@ classdef CanonicalSystem < handle
 
         end
 
-        function s = calc( obj, t )
+        function s_arr = calc( obj, t_arr )
             % ===========================================================================
             % Descriptions
             % ------------
-            %    Calculating the Canonical System
+            %    Calculating the Canonical System value at t
             %
             % Parameters
             % ----------
-            %   (1) t - time (sec)
-            %           accepts array input
+            %   (1) t_arr - Time array (sec), as a row vector.
+            %           
             % 
             % Returns
             % -------
-            %   (1) s - the calculataion of s(t)
-            %           If discrete (0): s(t) = exp( -alpha_s/tau t )
-            %           If rhythmic (1): s(t) = mod( t/tau, 2pi )
+            %   (1) s_arr - Calculation of s(t)
+            %               If discrete (0): s(t) = exp( -alpha_s/tau t )
+            %               If rhythmic (1): s(t) = mod( t/tau, 2pi )
             %
             % ===========================================================================
             
+            % Time array t_arr should be a row vector
+            assert( isrow( t_arr ) )
+
             % If Discrete
             if obj.type == 0 
-                s = exp( -obj.alpha_s/obj.tau * t );
+                s_arr = exp( -obj.alpha_s/obj.tau * t_arr );
 
             % If Rhythmic
             elseif obj.type == 1
-                s = mod( t/obj.tau, 2*pi );
+                s_arr = mod( t_arr/obj.tau, 2*pi );
 
             % IF not, then should be halted
             else
