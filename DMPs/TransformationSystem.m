@@ -176,16 +176,16 @@ classdef TransformationSystem < handle
             assert( nr == length( g ) );
             
             % Define an array of y_arr, dy_arr, z_arr
-            y_arr  = zeros( n, nt );
-            z_arr  = zeros( n, nt );
-            dy_arr = zeros( n, nt );
+            y_arr  = zeros( n, Nt );
+            z_arr  = zeros( n, Nt );
+            dy_arr = zeros( n, Nt );
 
             % Set the initial condition 
             y_arr( :, 1 )  = y0;
             z_arr( :, 1 )  = z0;
             dy_arr( :, 1 ) = z0/obj.tau;
 
-            for i = 1 : nt-1
+            for i = 1 : Nt-1
                 
                 if t_arr( i ) <= t0i
                     y_arr( :, i+1 ) = y0;
