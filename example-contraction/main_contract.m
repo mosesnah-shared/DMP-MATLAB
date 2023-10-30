@@ -21,7 +21,6 @@ data3 = data;
 
 data_whole = { data1, data2, data3, data4 };
 
-
 data_whole{ 1 }.p0i = [ 3, 3, 3 ];
 data_whole{ 1 }.p0f = data_whole{ 1 }.p0i + data_whole{ 1 }.p0f;
 

@@ -37,6 +37,6 @@ plot( a2, cs.calc( t_arr ), fs.calc_ith_arr( t_arr, 1:N ), 'color', 'b' );
 % Overlap the whole activation
 plot( a1, t_arr, fs.calc_whole_at_t( t_arr ), 'color', 'k' )
 
-set( a1, 'xticklabel', {}, 'yticklabel', {}, 'xlim', [ 0, T ] )
-set( a2, 'xticklabel', {}, 'yticklabel', {}, 'xlim', [ 0, 1 ] )
+set( a1, 'xticklabel', { }, 'yticklabel', { }, 'xlim', [ 0, T ] )
+set( a2, 'xticklabel', { }, 'yticklabel', { }, 'xlim', [ 0, 1 ] )
 
