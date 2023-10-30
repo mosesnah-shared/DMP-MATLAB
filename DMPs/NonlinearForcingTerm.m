@@ -51,7 +51,7 @@ classdef NonlinearForcingTerm < handle
             % Case for Discrete movement followed the information from:
             % Saveriano, Matteo, et al. "Dynamic movement primitives in robotics: A tutorial survey." arXiv preprint arXiv:2102.03861 (2021).
 
-            % If discrete Movement
+            % If Discrete Movement
             if obj.type == 0
                 obj.c_arr = exp( -obj.cs.alpha_s/( obj.N-1 ) * ( 0:(obj.N-1) ) );
                 obj.h_arr( 1:end-1 ) = 1.0 ./ diff( obj.c_arr ).^2;
@@ -221,17 +221,19 @@ classdef NonlinearForcingTerm < handle
             act_weighted = zeros( n, length( t_arr ) );
 
             for i = 1 : n
-                act_weighted( i, : ) = w_arr( i, : )' .* obj.calc_ith_arr( t_arr, 1:obj.N )/obj.calc_whole_at_t( t_arr );
+                act_weighted( i, : ) = sum( w_arr( i, : )' .* obj.calc_ith_arr( t_arr, 1:obj.N ) ./obj.calc_whole_at_t( t_arr ), 1 );
             end
         end   
 
-        function force_arr = calc_forcing_term( obj, t_arr, w_arr, t0i )
+        function force_arr = calc_forcing_term( obj, t_arr, w_arr, t0i, scl )
             % ===========================================================================
             % Descriptions
             % ------------
             %    fs = NonlinearForcingTerm.calc_forcing_term( t_arr, w_arr, t0i )
             %         Calculate the nonlinear forcing term
             %         with a time offset of t0i
+            %         scl is a scaling factor for the nonlinear forcing
+            %         term.
             % ===========================================================================
     
             % First, we only need to calculate the forcing term between 
@@ -247,7 +249,10 @@ classdef NonlinearForcingTerm < handle
             % of basis functions
             [ n, nc ] = size( w_arr );
             assert( nc == obj.N );
-    
+
+            % Check whether y0 and g are column vectors
+            assert( all( [ n, n ] == size( scl ) ) );
+                
             % The time array's maximum value should be bigger than t0i
             assert( t0i <= max( t_arr ) );
     
@@ -256,11 +261,11 @@ classdef NonlinearForcingTerm < handle
     
             % Get the index for the time array
             % That is between t0i and t0i + D
-            idx_arr = ( t_arr >= t0i && t_arr <= t0i + obj.cs.tau );
+            idx_arr = ( t_arr >= t0i & t_arr <= t0i + obj.cs.tau );
     
             % Calculate the forcing term 
             t_tmp = t_arr( idx_arr ) - t0i;
-            force_arr( :, idx_arr ) = obj.cs.calc( t_tmp ) .* obj.calc_whole_weighted_at_t( t_tmp, w_arr );
+            force_arr( :, idx_arr ) = scl * ( obj.cs.calc( t_tmp ) .* obj.calc_whole_weighted_at_t( t_tmp, w_arr ) );
 
         end
 
