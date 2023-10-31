@@ -52,7 +52,7 @@ cs_rhythmic = CanonicalSystem( 'rhythmic', tau, alphas ); %
 
 f = figure( ); a = axes( 'parent', f );
 hold on
-plot( a, t_arr, cs_rhythmic.calc( t_arr ), 'linewidth', 5 );
-set( a, 'xticklabel', {}, 'yticklabel', {}, 'xlim', [0,T] )
+plot(  a, t_arr, cs_rhythmic.calc( t_arr ), 'linewidth', 5 );
+set(   a, 'xticklabel', {}, 'yticklabel', {}, 'xlim', [0,T] )
 title( a, 'Rhythmic Canonical System', 'fontsize', 30)
 

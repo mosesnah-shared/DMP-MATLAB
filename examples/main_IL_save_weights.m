@@ -22,7 +22,7 @@ syms t_sym
 % [1] min_jerk
 % [2] cosine
 % [3] radial
-name_traj = 'radial';
+name_traj = 'min_jerk';
 
 % Position
 switch name_traj
@@ -127,7 +127,6 @@ w_arr_LSS = zeros( 3, N );
 % Calculate the f_array 
 f_arr = trans_sys.get_desired( p_data, dp_data, ddp_data, g_d ); 
 
-
 for k = 1 : 3
     phi_mat = zeros( P, N );
     
@@ -141,6 +140,9 @@ for k = 1 : 3
     w_arr_LSS( k, : ) = transpose( ( phi_mat' * phi_mat )^(-1) * phi_mat' * f_arr( k, : )' );
 
 end
+
+% A more simplified calculation 
+
 
 %% ---- [1D] Rollout Generating a Full trajectory with the Transformation System
 
@@ -163,7 +165,7 @@ rot1 = roty( 30 );
 tmp_scl = 1.0;
 
 for angle = 0:120:360
-    g_new = tmp_scl * rotz( angle ) * rot1 * g_d;
+    g_new  = tmp_scl * rotz( angle ) * rot1 * g_d;
     y0_new = tmp_scl * rotz( angle )* rot1 * yi_d;
     input_arr = fs.calc_forcing_term( t_arr( 1:end-1 ), w_arr_LSS, t0i, tmp_scl * rotz( angle ) * rot1 );
     [ y_arr, z_arr, dy_arr ] = trans_sys.rollout( y0_new, z0_new, g_new, input_arr, t0i, t_arr  );    

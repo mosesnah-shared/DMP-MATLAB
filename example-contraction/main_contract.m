@@ -21,16 +21,16 @@ data3 = data;
 
 data_whole = { data1, data2, data3, data4 };
 
-data_whole{ 1 }.p0i = [ 3, 3, 3 ];
+data_whole{ 1 }.p0i = [ 3; 3; 3 ];
 data_whole{ 1 }.p0f = data_whole{ 1 }.p0i + data_whole{ 1 }.p0f;
 
-data_whole{ 2 }.p0i = data_whole{ 1 }.p0f + [ 1, 1, 0 ];
+data_whole{ 2 }.p0i = data_whole{ 1 }.p0f + [ 1; 1; 0 ];
 data_whole{ 2 }.p0f = data_whole{ 2 }.p0i + data_whole{ 2 }.p0f;
 
-data_whole{ 3 }.p0i = data_whole{ 2 }.p0f + [ 1, 1, 1 ];
+data_whole{ 3 }.p0i = data_whole{ 2 }.p0f + [ 1; 1; 1 ];
 data_whole{ 3 }.p0f = data_whole{ 3 }.p0i + data_whole{ 3 }.p0f;
 
-data_whole{ 4 }.p0i = data_whole{ 3 }.p0f + [ 1, 3, -1];
+data_whole{ 4 }.p0i = data_whole{ 3 }.p0f + [ 1; 3; -1];
 data_whole{ 4 }.p0f = data_whole{ 4 }.p0i + data_whole{ 4 }.p0f;
 
 %% [1B] Sequencing the Movements

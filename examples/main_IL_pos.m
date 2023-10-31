@@ -16,21 +16,17 @@ fig_config( 'fontSize', 20, 'markerSize', 10 )
 % The initial (q0i), final posture (q0f), duration (D), starting time (t0i) of the trajectory
 q0i = [ 0.0;  2.0;  4.0 ];
 q0f = [ 1.0; -1.0; -2.0 ];
-
-n   = length( q0i );
 D   = 2.0;
+n   = length( q0i );
 
-% For Imitation Learning, one should define the number of basis function
-N  = 100;
+% The number of basis functions
+N = 50;
 
-% Parameters of the 3 DMPs
+% Parameters of the DMPs
 alpha_z = 10.0;
 alpha_s =  1.0;
-beta_z  = 1/4 * alpha_z;
+beta_z  = 0.25 * alpha_z;
 tau     = D;
-g       = q0f;
-y0      = q0i;
-z0      = zeros( 3, 1 );
 
 cs        = CanonicalSystem( 'discrete', tau, alpha_s );
 trans_sys = TransformationSystem( alpha_z, beta_z, cs );
@@ -44,39 +40,33 @@ P = 100;
 % Equal Sampling along time with duration D
 t_P = linspace( 0.0, D, P );
 
-% Desired Trajectories
-  y_des_arr = zeros( n, P );
- dy_des_arr = zeros( n, P );
-ddy_des_arr = zeros( n, P );
+% Desired Trajectories, position, velocity and acceleration.
+  y_des = zeros( n, P );
+ dy_des = zeros( n, P );
+ddy_des = zeros( n, P );
 
-for i = 1 : n
-    for j = 1 : P
-        [ y_des, dy_des, ddy_des ] = min_jerk_traj( t_P( j ), q0i( i ), q0f( i ), D, 0 );
-          y_des_arr( i, j ) =   y_des;
-         dy_des_arr( i, j ) =  dy_des;
-        ddy_des_arr( i, j ) = ddy_des;
-    end
+for i = 1 : P
+    [ p, dp, ddp ] = min_jerk_traj( t_P( i ), q0i, q0f, D, 0 );
+      y_des( :, i ) =   p;
+     dy_des( :, i ) =  dp;
+    ddy_des( :, i ) = ddp;
 end
 
-% Calculate the f_array 
-f_arr = trans_sys.get_desired( y_des_arr, dy_des_arr, ddy_des_arr, g ); 
+% A More simple calculation of the weights 
+g_d  = q0f;
+y0_d = q0i;
+f_arr   = trans_sys.get_desired( y_des, dy_des, ddy_des, g_d );
+Phi_mat = zeros( P, N );
 
-% Learning the weights with least-square method 
-w_arr_LSS = zeros( n, N );
-
-for k = 1 : n
-    phi_mat = zeros( P, N );
-    
-    for i = 1 : P
-        for j = 1 : N
-            phi_mat( i, j ) = fs.calc_ith( t_P( i ), j ) / fs.calc_whole_at_t( t_P( i ) ) * ( g( k ) - y0( k ) ) * cs.calc( t_P( i ) );
-        end
-    end
-    
-    % Get w_arr with Least square solution
-    w_arr_LSS( k, : ) = transpose( ( phi_mat' * phi_mat )^(-1) * phi_mat' * f_arr( k, : )' );
-
+for i = 1 : P 
+    Phi_mat( i, : ) = fs.calc_ith_arr( t_P( i ), 1:N )/ fs.calc_whole_at_t( t_P( i ) ) * cs.calc( t_P( i ) );
 end
+
+% Scaling of forcing term
+tmp = 1./( q0f - q0i );
+tmp( isinf( tmp ) | isnan( tmp ) ) = 0; 
+
+w_arr_LSS = transpose( (Phi_mat' * Phi_mat)^(-1) * Phi_mat' * f_arr' * diag( tmp ) );
 
 %% ---- [1C] Rollout Generating a Full trajectory with the Transformation System
 
@@ -85,6 +75,11 @@ t0i = 1.0;
 T   = 5;
 N   = 3000;
 t_arr = linspace( 0, T, N+1 ); 
+
+% The new y0, z0, g
+y0 =  ones( n, 1 );
+z0 = zeros( n, 1 );
+g  = 2 * y0;
 
 input_arr = fs.calc_forcing_term( t_arr( 1:end-1 ), w_arr_LSS, t0i, diag( g - y0 ) );
 
@@ -185,7 +180,19 @@ f_arr = trans_sys.get_desired( y_des_arr, dy_des_arr, ddy_des_arr, g_d );
 
 % Learning the weights with least-square method 
 n = length( g_d );
-w_arr_LSS = zeros( n, N );
+
+% A More simple calculation of the weights 
+Phi_mat = zeros( P, N );
+
+for i = 1 : P 
+    Phi_mat( i, : ) = fs.calc_ith_arr( t_P( i ), 1:N )/ fs.calc_whole_at_t( t_P( i ) ) * cs.calc( t_P( i ) );
+end
+
+tmp = 1./( g - y0 );
+tmp( isinf( tmp ) | isnan( tmp ) ) = 0; 
+
+w_arr_LSS = transpose( (Phi_mat' * Phi_mat)^(-1) * Phi_mat' * f_arr' * diag( tmp ) );
+
 
 for k = 1 : n
     phi_mat = zeros( P, N );

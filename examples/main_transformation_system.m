@@ -30,7 +30,7 @@ for tmp = [0.1,0.25, 0.5, 0.75, 1.0, 2.5]
     
     hold on
     plot( t_arr, y_arr, 'color',  [0.4660 0.6740 0.1880] )
-    set( gca, 'xticklabel', {}, 'yticklabel', {} )
+    set( gca, 'xticklabel', { }, 'yticklabel', { } )
 
 end
 set( gca, 'ylim', [ 0.0, 3.0 ] )
