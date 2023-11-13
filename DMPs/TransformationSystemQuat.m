@@ -1,4 +1,4 @@
-classdef TransformationSystem_quat < handle
+classdef TransformationSystemQuat < handle
     
     properties
         % Parameters of the transformation systems
@@ -16,7 +16,7 @@ classdef TransformationSystem_quat < handle
     end
     
     methods
-        function obj = TransformationSystem_quat( alpha_z, beta_z, tau, quat0, w0 )
+        function obj = TransformationSystemQuat( alpha_z, beta_z, tau, quat0, w0 )
             % ===========================================================================
             % Descriptions
             % ------------
