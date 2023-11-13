@@ -1,40 +1,48 @@
-%% ==================================================================
-%% [Title] Imitation Learning
-% Author: Moses Chong-ook Nah
-%  Email: mosesnah@mit.edu
-%   Date: 2023.08.15
-%% ==================================================================
+% [Title]     Basic Imitation Learning
+% [Author]    Moses Chong-ook Nah
+% [Email]     mosesnah@mit.edu
+% [Update]    At 2023.11.12
 
-%% [0A] Initialization
+%% (--) Initialization
 clear; close all; clc;
 fig_config( 'fontSize', 20, 'markerSize', 10 )
 
-%% [1-] Imitation Learning of Minimum-jerk Trajectory
-%% ---- [1A] Parameter Initialization
+%% =======================================================
+%% (1-) Imitation Learning for Minimum-jerk Trajectory
+%%  -- (1A) Initialization
 
 % The trajectory we aim to imitate is the Minimum jerk Trajectory
-% The initial (q0i), final posture (q0f), duration (D), starting time (t0i) of the trajectory
-q0i = [ 0.0;  2.0;  4.0 ];
-q0f = [ 1.0; -1.0; -2.0 ];
-D   = 2.0;
-n   = length( q0i );
+% The parameters of the trajectory include:
+%   (1) Initial position (y0d) (column vec.)
+%   (2)   Final position (gd) (column vec.)
+%   (3) Duration (D) 
+%   (4) Starting time (t0i)
+% For (1), (2) the g subscript is to emphasize the initial/final
+% position of a "d"emonstrated trajectory
 
-% The number of basis functions
+y0d = [ 0.0;  2.0;  4.0 ];
+gd  = [ 1.0; -1.0; -2.0 ];
+D   = 2.0;
+n   = length( y0d );
+
+% Parameters for the Canonical System
+tau     =    D;
+alpha_s =  1.0;
+
+% The number of Basis Function for the Nonlinear Forcing Term
 N = 50;
 
-% Parameters of the DMPs
+% Parameters of the Transformation System
 alpha_z = 10.0;
-alpha_s =  1.0;
 beta_z  = 0.25 * alpha_z;
-tau     = D;
 
 cs        = CanonicalSystem( 'discrete', tau, alpha_s );
 trans_sys = TransformationSystem( alpha_z, beta_z, cs );
 fs        = NonlinearForcingTerm( cs, N );
 
-%% ---- [1B] Learning Weights via Locally Weighted Regression or Least-Square
+%%  -- (1B) Learning the weights via Linear Least Square Regression
 
-% Assume that we have P sample points for the minimum jerk trajectory.
+% P sample points for the minimum jerk trajectory.
 P = 100;
 
 % Equal Sampling along time with duration D
@@ -46,71 +54,68 @@ t_P = linspace( 0.0, D, P );
 ddy_des = zeros( n, P );
 
 for i = 1 : P
-    [ p, dp, ddp ] = min_jerk_traj( t_P( i ), q0i, q0f, D, 0 );
+    [ p, dp, ddp ] = min_jerk_traj( t_P( i ), y0d, gd, D, 0 );
       y_des( :, i ) =   p;
      dy_des( :, i ) =  dp;
     ddy_des( :, i ) = ddp;
 end
 
-% A More simple calculation of the weights 
-g_d  = q0f;
-y0_d = q0i;
-f_arr   = trans_sys.get_desired( y_des, dy_des, ddy_des, g_d );
+% Calculating the required Nonlinear Forcing Term
+f_arr   = trans_sys.get_desired( y_des, dy_des, ddy_des, gd );
+
+% The phi matrix 
 Phi_mat = zeros( P, N );
 
+% Interating along the sample points
 for i = 1 : P 
-    Phi_mat( i, : ) = fs.calc_ith_arr( t_P( i ), 1:N )/ fs.calc_whole_at_t( t_P( i ) ) * cs.calc( t_P( i ) );
+    t = t_P( i );
+    Phi_mat( i, : ) = fs.calc_multiple_ith( t, 1:N )/ fs.calc_whole_at_t( t ) * cs.calc( t );
 end
 
-% Scaling of forcing term
-tmp = 1./( q0f - q0i );
-tmp( isinf( tmp ) | isnan( tmp ) ) = 0; 
+% Scaling matrix
+% There are two options, from Koutras and Doulgeri (2020) and the Ijspeert et al. (2013).
+% For this time, we use Ijspeert et al. (2013).
+scl = diag( gd - y0d );
+w_arr = transpose( ( Phi_mat' * Phi_mat )^(-1) * Phi_mat' * f_arr' * scl^(-1) );
 
-w_arr_LSS = transpose( (Phi_mat' * Phi_mat)^(-1) * Phi_mat' * f_arr' * diag( tmp ) );
-
-%% ---- [1C] Rollout Generating a Full trajectory with the Transformation System
+%%  -- (1C) Rollout Generating a Full trajectory with the Transformation System
 
 % Rollout with the weight array 
-t0i = 1.0;
-T   = 5;
-N   = 3000;
-t_arr = linspace( 0, T, N+1 ); 
+t0i   = 1.0;
+T     = 5.0;
+Nt    = 3000;
+t_arr = linspace( 0, T, Nt+1 ); 
 
 % The new y0, z0, g
-y0 =  ones( n, 1 );
+y0 = 2 * ones( n, 1 );
 z0 = zeros( n, 1 );
-g  = 2 * y0;
+g  = 4 * ones( n, 1 );
 
-input_arr = fs.calc_forcing_term( t_arr( 1:end-1 ), w_arr_LSS, t0i, diag( g - y0 ) );
+input_arr = fs.calc_forcing_term( t_arr( 1:end-1 ), w_arr, t0i, diag( g - y0 ) );
 
 [ y_arr, z_arr, dy_arr ] = trans_sys.rollout( y0, z0, g, input_arr, t0i, t_arr  );
 
 f = figure( ); a = axes( 'parent', f );
-plot( a, t_arr, y_arr'  )
+hold( a, 'on' )
+plot( a, t_arr, y_arr' , 'linewidth', 3 )
+plot( a, t_arr, dy_arr', 'linewidth', 3 )
 
-f = figure( ); a = axes( 'parent', f );
-plot( a, t_arr, dy_arr' )
-
-%% ---- [1D] Saving the Weights and Parameters of the Learned Trajectory 
+%% -- (1D) Saving the Weights and Parameters of the Learned Trajectory 
 
 % All the necessary data 
-data = struct;
-
-data.alpha_z = alpha_z;
-data.beta_z  = beta_z;
-
+data           = struct;
+data.alpha_z   = alpha_z;
+data.beta_z    = beta_z;
 data.cs        = cs;
 data.trans_sys = trans_sys;
 data.fs        = fs;
 data.g         = g;
-
-data.w_arr_LSS = w_arr_LSS;
+data.w_arr     = w_arr;
 
 % save( './learned_parameters/min_jerk_traj' , 'data' );
 
-
-%% [2-] Imitation Learning with Modified DMP
-%% ---- [2A] Definition of Trajectories
+%% (2-) Imitation Learning for Actual Learning Trajectory
+%% (--) (2A) Definition of Trajectories
 
 t_sym = sym( 't_sym' );
 

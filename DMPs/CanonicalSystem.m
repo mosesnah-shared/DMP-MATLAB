@@ -2,15 +2,19 @@
     
     properties       
         
-        % Type of the canonical system, either discrete (0), rhythmic (1)
+        % Type of the Canonical System 
+        % Either discrete (0), rhythmic (1)
         type 
         
-        % The time constant of the canonical system
+        % The Time constant of the Sanonical System
         % For Discrete movement: Duration of the movement
-        % For Rhythmic movement: Period of the movement divided by 2pi
+        % For Rhythmic movement:   Period of the movement divided by 2pi
         tau 
         
-        % For Discrete movement: must be positive value
+        % For Discrete movement: Positive value
+        % The Canonical System for discrete movement is governed by 
+        % the following differential equation:
+        % s(t) = exp( -alpha_s/tau t );
         alpha_s
     end
 
@@ -28,18 +32,15 @@
             % 
             % Parameters
             % ----------
-            %   (1) type - 'discrete' or 'rhythmic'
+            %   (1) type - Either 'discrete' or 'rhythmic'
             % 
-            %   (2) tau - The time constant of the canonical system
-            %             For 'discrete' movement: Duration of the movement
-            %             For 'rhythmic' movement: Period of the movement divide by 2pi
+            %   (2) tau  - The time constant of the canonical system
             %
             %   (3) alpha_s - positive constant. 
-            %                 If 'rhythmic', then value is ignored
+            %                 If 'rhythmic', then value saved but ignored
             %
             % ===========================================================================
             
-            % Type input should be either 'discrete' or 'rhythmic'
             type = lower( type );
             assert( strcmp( type, "discrete" ) || strcmp( type, "rhythmic" ) )
             
@@ -50,7 +51,7 @@
                 obj.type = 1;
             end
             
-            % Tau and alpha_s should be positive values
+            % Tau and alpha_s must be positive values
             assert( tau > 0 && alpha_s > 0 );
             obj.tau     = tau; 
             obj.alpha_s = alpha_s;
@@ -66,7 +67,6 @@
             % Parameters
             % ----------
             %   (1) t_arr - Time array (sec), as a row vector.
-            %           
             % 
             % Returns
             % -------
@@ -76,7 +76,7 @@
             %
             % ===========================================================================
             
-            % Time array t_arr should be a row vector
+            % t_arr must be a row vector
             assert( isrow( t_arr ) )
 
             % If Discrete
@@ -89,7 +89,8 @@
 
             % IF not, then should be halted
             else
-                error( '[Wrong input] type should be either 0 or 1 but %d is defined as type', obj.type )
+                error( ['[Wrong Input] Type should be either 0 or 1 ...' ...
+                        ' but %d is defined as type'], obj.type )
             end
             
         end
