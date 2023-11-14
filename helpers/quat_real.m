@@ -1,8 +1,8 @@
-function quat_new = quat_conj( quat )
+function qw = quat_real( quat )
 % ===========================================================================
 % Descriptions
 % ------------
-%    Quaternion Conjugation
+%    Get the imaginary vector part of a quaternion
 % 
 % Parameters
 % ----------
@@ -10,7 +10,7 @@ function quat_new = quat_conj( quat )
 % 
 % Returns
 % -------
-%   (1) quat_new: conjugated version of quat
+%   (1) qw: Scalar part of the quaternion
 %
 % ===========================================================================
 
@@ -18,12 +18,7 @@ function quat_new = quat_conj( quat )
 assert( isrow( quat ) || iscolumn( quat ) );
 assert( length( quat ) == 4 );
 
-% Create a new quaternion
-quat_new = zeros( size( quat ), 'like', quat );
-
-% Return the conjugate version of quaternion
-quat_new( 1   ) =  quat( 1 );
-quat_new( 2:4 ) = -quat( 2:4 );
+qw = quat( 1 );
 
 end
 

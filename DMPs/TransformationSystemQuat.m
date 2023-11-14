@@ -1,30 +1,28 @@
 classdef TransformationSystemQuat < handle
     
     properties
-        % Parameters of the transformation systems
+
+        % Parameters of the Transformation System
+        % The gains are all identical over the 3-DOFs
         alpha_z;
         beta_z;
         tau;
-        
-        % Initial Conditions, Orientation and Velocity
-        quat0;
-        w0;
+
+        % The Canonical System, to get the tau value
+        % Note that the Nonlinear Forcing Term is not associated with the
+        % Transformation System
+        cs; 
  
-        % State values 
-        quat_curr;  
-        w_curr;
     end
     
     methods
-        function obj = TransformationSystemQuat( alpha_z, beta_z, tau, quat0, w0 )
+        function obj = TransformationSystemQuat( alpha_z, beta_z, cs )
             % ===========================================================================
             % Descriptions
             % ------------
-            %    
-            % Authors           
-            % -------           
-            %   Moses C. Nah    mosesnah@mit.edu
-            % 
+            %    Constructor of Transformation System for Orientation, Unit Quaternion description 
+            %    The method is derived by Koutras and Doulgeri (2020)
+            %    "A correct formulation for the orientation dynamic movement primitives for robot control in the cartesian space." 
             %
             % Parameters
             % ----------
@@ -32,106 +30,171 @@ classdef TransformationSystemQuat < handle
             % 
             %   (2) beta_z  - A Positive Gain
             %
-            %   (3) tau     - Time constant, derived from the Canonical System
-            %
-            %   (4) quat0   - Initial Orientation of the Quaternion
-            %
-            %   (5) w0      - Initial Angular Velocity
+            %   (3) cs      - Canonical System
             %
             % ===========================================================================
             
-            assert( alpha_z > 0 && beta_z > 0 && tau > 0 );
+            % Must be positive values
+            assert( alpha_z > 0 && beta_z > 0 );
            
             obj.alpha_z = alpha_z;
             obj.beta_z  =  beta_z;
-            obj.tau     = tau;
-            
-            assert( obj.is_unit_quat( quat0 ) );
-            assert( all( [ 1,3 ] == size( w0 ) ) || all( [ 3,1 ] == size( w0 ) ) )
-            
-            if all( [ 1,3 ] == size( w0 )  )
-               w0 = w0'; 
-            end
-            
-            if all( [ 1,4 ] == size( quat0 )  )
-               quat0 = quat0'; 
-            end
-                        
-            % Initial conditions of orientation and angular velocity
-            obj.quat0 = quat0;
-            obj.w0    = w0;
-            
-            % Setup the current state as y0, z0 
-            obj.quat_curr = quat0;
-            obj.w_curr    =    w0;
+            obj.cs      = cs;
+            obj.tau     = cs.tau;
             
         end
-        
-        % ================================================================ %
-        % ===================== INTERNAL FUNCTIONS ======================= %
-        % ================================================================ %
-        function is_check = is_unit_quat( obj, quat )
-            assert( all( size( quat ) == [ 1, 4 ] ) || all( size( quat ) == [ 4, 1 ] ) );
-            assert( abs( dot( quat, quat ) - 1 ) <= 1e-9 );
-            is_check = true;
-        end
-        
-        
-        function [ quat_new, w_new, dquat, dw ] = step( obj, quatg, input, dt )
+                
+        function [ eq_new, z_new, deq, dz ] = step( obj, eq_old, z_old, input, dt )
             % ===========================================================================            
             % Descriptions
             % ------------
-            %    [ quat_new, w_new, dquat, dw ] = step( obj, quatg, input, dt )
+            %    [ eq_new, z_new, deq_new, dz ] = step( obj, eq_old, z_old, input, dt )
             %       
             %    A forward integration given the following differential equation
-            %       tau * dq = 1/2 w * q
-            %       tau * dw = alpha_z * ( beta_z ( vec( quatg * q' ) - w )
-            %
-            %    The first  equation is the Quaternion Dynamics
-            %    w in this is simply for w = (wx, wy, wz):
-            %    w = wxi + wyj + wzk
-            %    the second equation is simply the w.
-            %    vec is taking off the imaginary part
-            %
-            %    [REF1] Saveriano, Matteo, et al. "Dynamic movement primitives in robotics: A tutorial survey." 
-            %           arXiv preprint arXiv:2102.03861 (2021).
-            %    [REF2] Saveriano, Matteo, Felix Franzel, and Dongheui Lee. 
-            %           "Merging position and orientation motion primitives." (2019) Eq.3b
-            % 
-            % Authors           
-            % -------          
-            %   Moses C. Nah    mosesnah@mit.edu
-            % 
+            %       tau * dz  = eq_old
+            %       tau * deq = -alpha_z * ( beta_z eq_old + z ) + input
             %
             % Parameters
             % ----------
-            %   (1) Rg    - Goal orientation of the robot
+            %   (1) eq_old - error quat.
+            %             
+            %   (2) z_old  - the generalized time derivative of error quat.
             % 
-            %   (2) input - force, could include coupling term
+            %   (3) input  - Nonlinear Forcing Term input
             %
-            %   (3) dt    - time step
+            %   (4) dt     - Time step
+            %
+            % Returns
+            % -------
+            %   (1) eq_new - Integrated new position column array
+            % 
+            %   (2)  z_new - Integrated new generalized velocity array
+            %
+            %   (3)    deq - The velocity column array, z/tau
+            %
+            %   (4)     dz - The acceleration column array
             %
             % ===========================================================================
 
-            assert( all( size( input ) == [ 1,3 ] ) || all( size( input ) == [ 3,1 ] ) );
-            assert( obj.is_unit_quat( quatg ) );
+            assert( iscolumn( eq_old ) && iscolumn( z_old ) && iscolumn( input ) )
+            assert( ( length( eq_old ) == 3 ) && ( length( z_old ) == 3 ) && ( length( input ) == 3  ) )
                 
-            dquat      = 1/2 * quat_mul( [ 0; obj.w_curr ], obj.quat_curr ); 
-            quat_delta = quat_log( quat_mul( quatg, quat_conj( obj.quat_curr ) ) );
-            
-            dw = ( obj.alpha_z * obj.beta_z * quat_delta - obj.beta_z * obj.w_curr + input )/obj.tau;
-            
-            w_new  = dw * dt + obj.w_curr;
-            
-            % Forward integration of Quaternion
-            quat_new = quat_mul( quat_exp( 1/2 * dt/obj.tau * obj.w_curr ), obj.quat_curr );
-            
-            % Update the current one
-            obj.quat_curr = quat_new;
-            obj.w_curr    = w_new;
-           
+            deq = 1/obj.tau * z_old;
+            dz  = 1/obj.tau * ( -obj.alpha_z * ( obj.beta_z * eq_old + z_old ) + input );
+
+            z_new  =  z_old + dz  * dt;
+            eq_new = eq_old + deq * dt;
 
         end
+
+
+        function [ eq_arr, z_arr, deq_arr ] = rollout( obj, eq0, z0, input_arr, t0i, t_arr )
+            % ===========================================================================            
+            % Descriptions
+            % ------------
+            %    [eq_arr, z_arr, deq_arr ] = rollout( obj, eq0, deq0, input_arr, t0i, t_arr )
+            %       
+            %    A forward integration given the following differential equation
+            %       tau * dz  = eq_old
+            %       tau * deq = -alpha_z * ( beta_z eq_old + z ) + input
+            %
+            % Parameters
+            % ----------
+            %   (1) eq0  - The initial condition of error quaternion
+            %             
+            %   (2) z0   - The initial condition of z
+            %
+            %   (3) input_arr - Nonlinear Forcing Term input array
+            %
+            %   (4) t0i - Initial time of the rollout
+            %             Must be identical with input_arr
+            % 
+            %   (5) t_arr - time array of the integration
+            %
+            % Returns
+            % -------
+            %   (1) eq_arr  - Error quaternion array
+            % 
+            %   (2) z_arr   - deq_arr / tau
+            %
+            %   (3) deq_arr - Time-derivative of Error quaternion array
+            %
+            % ===========================================================================            
+            % eq0, z0 must be column vectors
+            assert( iscolumn( eq0 ) && iscolumn( z0 ) );
+
+            % The length must also be identical 
+            assert( length( eq0 ) == length( z0 ) )
+
+            % t_arr must be a row vector and 
+            % t0i must be smaller than the maximum value of t_arr 
+            assert( isrow( t_arr ) );
+            assert( isscalar( t0i ) && t0i <= max( t_arr ) );
+
+            % The length of time
+            Nt = length( t_arr );
+
+            % input_arr size must be just 1 smaller than Nt 
+            % Since if there are Nt steps, there should be Nt-1 integrations
+            [ nr, nc ] = size( input_arr );
+            assert( ( 3 == nr ) && ( Nt == nc + 1 ) )
+            
+            % Initialize eq_arr, z_arr, deq_arr for the integration
+            eq_arr  = zeros( 3, Nt );
+            z_arr   = zeros( 3, Nt );
+            deq_arr = zeros( 3, Nt );
+
+            % Set the initial condition 
+            eq_arr( :, 1 )  = eq0;
+            z_arr( :, 1 )   = z0;
+            deq_arr( :, 1 ) = z0/obj.tau;
+
+            for i = 1 : Nt-1
+                
+                % If smaller than t0i, no integration
+                if t_arr( i+1 ) <= t0i
+                    eq_arr( :, i+1 ) = eq0;
+                    z_arr( :, i+1 )  = z0;
+
+                else
+                    dt = t_arr( i+1 ) - t_arr( i );
+                    [ y_new, z_new, dy, ~ ] = obj.step( eq_arr( :, i ), z_arr( :, i ), input_arr( :, i ), dt );
+                    
+                    eq_arr(  :, i + 1 ) = y_new;
+                    z_arr(  :, i + 1 )  = z_new;
+                    deq_arr( :, i + 1 ) = dy;
+                end
+            end            
+
+        end        
+
+        function f_des = get_desired( obj, eq_arr, deq_arr, ddeq_arr )
+            % ===========================================================================            
+            % Descriptions
+            % ------------
+            %    f_des = get_desired( obj, eq_arr, deq_arr, ddeq_arr )
+            %       
+            %    Calculating the f_des for Imitation Learning
+            %
+            % Parameters
+            % ----------
+            %   (1) eq_arr   - The error quaternion array, 3xNq
+            %             
+            %   (2) deq_arr  - The time-derivative  of error quaternion array, 3xNq
+            %             
+            %   (3) ddeq_arr - The time-dderivative of error quaternion array, 3xNq
+            %
+            % Returns
+            % -------
+            %   (1) f_des - The desired force for the quaternion transformation system
+            %
+            % ===========================================================================            
+                        
+
+            f_des = obj.tau^2 * ddeq_arr + obj.alpha_z * obj.tau * deq_arr + obj.alpha_z * obj.beta_z * eq_arr;
+
+        end
+
         
     end
 end

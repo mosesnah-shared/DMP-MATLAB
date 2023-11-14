@@ -11,7 +11,7 @@ function R = quat_to_SO3( quat )
                  qvec( 3 ),          0, -qvec( 1 );
                 -qvec( 2 ),  qvec( 1 ),          0];
 
-    R = eye( 3 ) - 2 * qw * qvec_mat + 2 * qvec_mat* qvec_mat;
+    R = eye( 3 ) + 2 * qw * qvec_mat + 2 * qvec_mat* qvec_mat;
 
 end
 

@@ -1,8 +1,8 @@
-function so3 = R3_to_so3( vec )
+function quat = R3_to_quat( vec )
 % ===========================================================================
 % Descriptions
 % ------------
-%    Change from R3 vector to so3 skew-symmetric form
+%    Change from R3 vector to quaternion vector
 % 
 % Parameters
 % ----------
@@ -20,8 +20,7 @@ assert( iscolumn( vec ) || isrow( vec ) );
 % The length should be three
 assert( length( vec ) == 3 );
 
-so3 = [         0, -vec( 3 ),  vec( 2 ), ...
-         vec( 3 ),         0, -vec( 1 ), ... 
-        -vec( 2 ),  vec( 1 ),        0 ];
+quat = zeros( 1, 4 );
+quat( 2:4 ) = vec;
          
 end

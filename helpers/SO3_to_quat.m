@@ -1,11 +1,26 @@
 function quat = SO3_to_quat( R )
-% Method from the following reference:
-% [REF] Allmendinger, Felix. Computational methods for the kinematic analysis of diarthrodial joints. 
+% ===========================================================================
+% Descriptions
+% ------------
+%    Conversion from SO3 to unit quaternion
+%
+%    Method from the following reference:
+%    [REF] Allmendinger, Felix. Computational methods for the kinematic analysis of diarthrodial joints. 
 %       Diss. Dissertation, Aachen, Techn. Hochsch., 2015, 2015.
 %       Page 127, Algorithm 2
+% 
+% Parameters
+% ----------
+%   (1) R: An SO3 matrix
+% 
+% Returns
+% -------
+%   (1) quat: unit quaternion of R
+%
+% ===========================================================================
 
 % A Quick check whether R is a rotation matrix 
-assert( norm( R * R' - eye( 3 ), 'fro' ) <= 1e-9 );
+assert( is_SO3( R ) );
 
 % Calculate the Quaternion Matrix
 R00 = trace( R );
