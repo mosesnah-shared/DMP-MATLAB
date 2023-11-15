@@ -17,7 +17,7 @@ function quat_new = LogQuat( quat )
 assert( is_unit_quat( quat ) );
 
 % Create a new quaternion
-quat_new = zeros( 'like', quat );
+quat_new = zeros( size( quat ), 'like', quat );
 
 qw = quat_real( quat );
 qv = quat_imag( quat );

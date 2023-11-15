@@ -12,7 +12,7 @@ clear; close all; clc;
 fig_config( 'fontSize', 20, 'markerSize', 10 )
 
 %% =======================================================
-%% (1-) Position Data Filtering and Learning the Weights
+%% (1-) Orientation Data Filtering and Learning the Weights
 %%  -- (1A) Calling the data and get the Forward Kinematics 
 
 % All dataset are saved under 'data' directory
@@ -94,16 +94,12 @@ end
 % qe = 2Im( Log( conj( q(t) ) * qg ) );
 % Note that we have switched the location of qg
 
-% First, calculate the filtered quaternion from filtered joint position
-qe_arr = zeros( 4, Np );
+% Calculate the error array, given the quaternion goal
+quat_goal = quat_arr_filt( :, end );
 error_arr = zeros( 3, Np );
 
-quat_goal = quat_arr_filt( :, end );
-
 for i = 1 : Np
-    tmp_quat = quat_conj( quat_arr_filt( :, i ) );
-    qe_arr( :, i ) = LogQuat( quat_mul( tmp_quat, quat_goal ) );
-    error_arr( :, i ) = 2 * quat_imag( qe_arr( :, i ) );
+    error_arr( :, i ) = get_quat_error( quat_arr_filt( :, i ), quat_goal  );
 end
 
 % For training, we need to calculate the error array value 
@@ -166,27 +162,27 @@ for i = 1 : P
 end
 
 % Scaling Matrix
-Sr = diag( 2 * quat_imag( quat_mul( quat_conj( quat_arr_filt( :, 1 ) ), quat_arr_filt( :, end ) ) ) );
+Sr = diag( get_quat_error( quat_arr_filt( :, 1 ), quat_arr_filt( :, end ) ) );
 
 % Learning the weights with Linear Least-square fitting
 w_arr = transpose( ( Phi_mat' * Phi_mat )^(-1) * Phi_mat' * f_arr' * inv( Sr ) );
 
 % Double check the result
 % Need the rollout
-
 % Double check the Learned weights with basic DMP
 % Initial conditions
 eq0 =    error_arr( :, 1 );
 z0  = dLogquat_arr( :, 1 )/tau;
 t0i = 0.0;
 T   = max( t_arr_demo );
-Ns  = 3000;
-t_arr = linspace( 0, T, Ns );
+dt  = 1e-4;
+t_arr = 0:dt:T;
+Ns = length( t_arr );
 
 % Calculate the nonlinear forcing term
 input_arr = fs.calc_forcing_term( t_arr( 1:end-1 ), w_arr, t0i, Sr  );
 
-[ eq_arr, z_arr, deq_arr ] = trans_sys.rollout( eq0, z0, input_arr, t0i, t_arr  );
+[ eq_arr, z_arr, deq_arr ] = trans_sys.rollout( eq0, z0, 2*input_arr, t0i, t_arr  );
 
 f = figure( ); a = axes( 'parent', f );
 hold( a, 'on' )
@@ -212,7 +208,6 @@ for i = 1 : Ns
     ttmp = quat_arr_gen( :, i );
     R_arr_cpr( :, :, i ) = quat2rotm( quaternion( ttmp( 1 ), ttmp( 2 ), ttmp( 3), ttmp( 4 ) ) );
 end
-
 
 
 % Double check the results 
@@ -244,3 +239,43 @@ for i = 1 : 100: Np
      quiver3( a, p_arr_filt( 1, i ), p_arr_filt( 2, i ), p_arr_filt( 3, i ), tmp_scl * R_arr_cpr( 1, 3, ix ), tmp_scl * R_arr_cpr( 2, 3, ix ), tmp_scl * R_arr_cpr( 3, 3, ix ), 'linewidth', 4, 'color', 'b' )
 
 end
+
+%% =======================================================
+%% (2-) Extension
+%%  -- (2A) Visualizing the Learned Rotation
+
+% Create a star-like object
+% [REF] https://www.mathworks.com/help/matlab/ref/hgtransform.html
+f = figure(  ); a = axes( 'parent', f );
+axis equal; 
+[ x, y, z] = cylinder( [0.2 0.0] );
+h( 1 ) = surface( a,  x,  y,  z, 'FaceColor', 'red'     );
+h( 2 ) = surface( a,  x,  y, -z, 'FaceColor', 'green'   );
+h( 3 ) = surface( a,  z,  x,  y, 'FaceColor', 'blue'    );
+h( 4 ) = surface( a, -z,  x,  y, 'FaceColor', 'cyan'    );
+h( 5 ) = surface( a,  y,  z,  x, 'FaceColor', 'magenta' );
+h( 6 ) = surface( a,  y, -z,  x, 'FaceColor', 'yellow'  );
+set( a, 'xlim', [ -2.0, 2.0], 'ylim', [ -2.0, 2.0 ], 'zlim', [ -2.0, 2.0 ] )
+view( a, 3 )
+
+t = hgtransform( 'Parent' ,a );
+set( h, 'Parent', t )
+
+% Saving the video for the rotations
+v = VideoWriter( 'rotation_video.mp4' );
+open(v)
+
+Nfs = round( 1/dt );
+Nstep = round( Nfs/30 );
+for i = 1 : Nstep : Ns
+    tmp = eye( 4 );
+    tmp( 1:3, 1:3 ) = R_arr_gen( :, :, i );
+    set( t ,'Matrix', tmp )
+    drawnow 
+    
+    frame = getframe(f);
+    writeVideo( v, frame )
+
+end
+close( v )
+
