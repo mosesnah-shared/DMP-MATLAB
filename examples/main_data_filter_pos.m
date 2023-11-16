@@ -12,7 +12,7 @@ fig_config( 'fontSize', 20, 'markerSize', 10 )
 %%  -- (1A) Calling the data and get the Forward Kinematics 
 
 % All dataset are saved under 'data' directory
-file_name = './data/example4/iiwa_example_pos';
+file_name = './data/example3/iiwa_example_orient';
 raw_data = parse_txt( [ file_name, '.txt' ], 0 );
 
 % Read the time (with offset) and joint-trajectory data
@@ -237,3 +237,22 @@ for i = 1 : length( scl_arr )
     scatter3( a, g( 1 ), g( 2 ), g( 3 ), 200, 'filled', 'markeredgecolor', [0 0.4470 0.7410], 'markerfacecolor', 'white', 'linewidth', 4 );
 
 end
+
+
+%%  -- (1F) Saving the Data, the weights for the learned trajectory
+
+data = struct;
+
+% Parameters of DMP and Learned Weighted
+data.name    = 'lift_up_down';
+data.tau     = tau;
+data.alpha_s = alpha_s;
+data.alpha_z = alpha_z;
+data.beta_z  =  beta_z;
+data.weight  = w_arr;
+
+% Initial and Goal Location
+data.init = p_arr_filt( :,   1 );
+data.goal = p_arr_filt( :, end );
+
+save( 'learned_parameters/lift_up_down.mat', 'data' );

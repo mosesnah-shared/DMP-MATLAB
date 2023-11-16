@@ -115,7 +115,7 @@ data.w_arr     = w_arr;
 % save( './learned_parameters/min_jerk_traj' , 'data' );
 
 %% (2-) Imitation Learning for Actual Learning Trajectory
-%% (--) (2A) Definition of Trajectories
+%%  --  (2A) Definition of Trajectories
 
 t_sym = sym( 't_sym' );
 
@@ -178,7 +178,7 @@ cs        = CanonicalSystem( 'discrete', D, alpha_s );
 trans_sys = TransformationSystem( alpha_z, beta_z, cs );
 fs        = NonlinearForcingTerm( cs, N );
 
-%% ---- [2B] Learning the weights of the trajectory with LLS
+%%  --  (2B) Learning the weights of the trajectory with LLS
 
 % Calculate the f_array 
 f_arr = trans_sys.get_desired( y_des_arr, dy_des_arr, ddy_des_arr, g_d ); 
@@ -213,8 +213,7 @@ for k = 1 : n
 
 end
 
-%% ---- [2C] Rollout with the weighting matrices
-
+%%  --  (2C) Rollout with the weighting matrices
 
 % Rollout with the weight array 
 t0i = 1.0;

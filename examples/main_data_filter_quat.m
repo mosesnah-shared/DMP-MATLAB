@@ -16,7 +16,7 @@ fig_config( 'fontSize', 20, 'markerSize', 10 )
 %%  -- (1A) Calling the data and get the Forward Kinematics 
 
 % All dataset are saved under 'data' directory
-file_name = './data/example3/iiwa_example_orient';
+file_name = './data/example4/iiwa_example_pos';
 raw_data = parse_txt( [ file_name, '.txt' ], 0 );
 
 % Read the time (with offset) and joint-trajectory data
@@ -182,7 +182,7 @@ Ns = length( t_arr );
 % Calculate the nonlinear forcing term
 input_arr = fs.calc_forcing_term( t_arr( 1:end-1 ), w_arr, t0i, Sr  );
 
-[ eq_arr, z_arr, deq_arr ] = trans_sys.rollout( eq0, z0, 2*input_arr, t0i, t_arr  );
+[ eq_arr, z_arr, deq_arr ] = trans_sys.rollout( eq0, z0, 1*input_arr, t0i, t_arr  );
 
 f = figure( ); a = axes( 'parent', f );
 hold( a, 'on' )
@@ -240,6 +240,24 @@ for i = 1 : 100: Np
 
 end
 
+%%  -- (1E) Saving the Data, the weights for the learned trajectory
+
+data = struct;
+
+% Parameters of DMP and Learned Weighted
+data.name    = 'draw_M';
+data.tau     = tau;
+data.alpha_s = alpha_s;
+data.alpha_z = alpha_z;
+data.beta_z  =  beta_z;
+data.weight  =   w_arr;
+
+% Initial and Goal Location
+data.init = quat_arr_filt( :,   1 );
+data.goal = quat_arr_filt( :, end );
+
+save( 'learned_parameters/draw_M_orient.mat', 'data' );
+
 %% =======================================================
 %% (2-) Extension
 %%  -- (2A) Visualizing the Learned Rotation
@@ -278,4 +296,5 @@ for i = 1 : Nstep : Ns
 
 end
 close( v )
+
 
