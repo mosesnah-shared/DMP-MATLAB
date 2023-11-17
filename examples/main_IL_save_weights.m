@@ -29,7 +29,7 @@ switch name_traj
         % Parameters
         l  = 1.0;
 
-        px = 0;
+        px = 0.0;
         py =   l * ( 10 * tn^3 - 15 * tn^4 + 6 * tn^5 );
         pz = 0.5 * ( cos( 2*2*pi/l * ( l * tn ) ) - 1 );
 
@@ -68,12 +68,16 @@ P     = length( t_arr );
  dp_data = zeros( 3, P );
 ddp_data = zeros( 3, P );
 
+% For the trajectory learning, we simply
 for i = 1 : P
     t = t_arr( i );
       p_data( :, i ) =   p_func( t );
      dp_data( :, i ) =  dp_func( t );
     ddp_data( :, i ) = ddp_func( t );
 end
+
+% Adding an offset to make the initial position 0
+p_data = p_data - p_data( :, 1 );
 
 % Plotting the trajectory
 f = figure( ); a = axes( 'parent', f );
@@ -88,8 +92,8 @@ N  = 50;
 
 % Parameters of DMP
 alpha_s = 1.0;
-alpha_z = 100.0;
-beta_z  = 1/4 * alpha_z;
+alpha_z = 1000.0;
+beta_z  = 0.5 * alpha_z;
 tau = D;
 
 % Defining the DMPs
@@ -134,9 +138,8 @@ scl  = 1.0;
 
 for angle = 0:120:360
     g_new  = scl * rotz( angle ) * rot1 *  g_d;
-    p0_new = scl * rotz( angle ) * rot1 * pi_d;
     input_arr = fs.calc_forcing_term( t_arr( 1:end-1 ), w_arr, t0i, scl * rotz( angle ) * rot1 );
-    [ p_arr, z_arr, dp_arr ] = trans_sys.rollout( p0_new, z0_new, g_new, input_arr, t0i, t_arr  ); 
+    [ p_arr, z_arr, dp_arr ] = trans_sys.rollout( zeros( 3, 1 ), z0_new, g_new, input_arr, t0i, t_arr  ); 
 
     % Plotting the Line
     plot3( a, p_arr( 1, : ), p_arr( 2, : ), p_arr( 3, : ), 'linewidth', 5, 'color', 'k' )
@@ -158,8 +161,8 @@ data.alpha_z = alpha_z;
 data.beta_z  =  beta_z;
 data.weight  = w_arr;
 
-% Initial and Goal Location
-data.init = pi_d;
+% Goal Location, where initial position is automatically zero
 data.goal =  g_d;
+data.z0   = dp_data( :, 1 )/tau;
 
 save( ['learned_parameters/', name_traj ,'.mat' ], 'data' );

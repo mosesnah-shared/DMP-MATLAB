@@ -12,8 +12,12 @@ fig_config( 'fontSize', 20, 'markerSize', 10 )
 %%  -- (1A) Calling the data and get the Forward Kinematics 
 
 % All dataset are saved under 'data' directory
-file_name = './data/example3/iiwa_example_orient';
-raw_data = parse_txt( [ file_name, '.txt' ], 0 );
+idx = 1;
+traj_names = [ "lift_up_down", "drawM" ]; 
+file_names = [ "example3/iiwa_example_orient", 'example4/iiwa_example_pos' ];
+
+
+raw_data = parse_txt( [ 'data/', file_names{ idx }, '.txt' ], 0 );
 
 % Read the time (with offset) and joint-trajectory data
 t_arr_demo = raw_data( :, 1 )' - raw_data( 1, 1 );
@@ -37,6 +41,10 @@ for i = 1 : Np
     p_arr_raw( :, i )    = H( 1:3,   4 );
     R_arr_raw( :, :, i ) = H( 1:3, 1:3 ); 
 end
+
+% Minus the offset for initial dataset zero 
+p_arr_raw = p_arr_raw - p_arr_raw( :, 1 );
+
 
 f = figure( ); a = axes( 'parent', f );
 hold( a, 'on' ); axis equal
@@ -103,8 +111,8 @@ end
 %%  -- (1C) Learning the Weights for Imitation Learning
 
 % Parameters of DMP
-alpha_s   =  2.0;
-alpha_z   = 2000.0;
+alpha_s   = 1.0;
+alpha_z   = 1000.0;
 beta_z    = 0.5 * alpha_z;
 N         = 100;
 tau       = max( t_arr_demo );
@@ -161,7 +169,7 @@ y0 = zeros( 3, 1 );
 z0 = dp_arr_filt( :, 1 )/cs.tau;
 
 % Parameters
-t0i   = 0.0;
+t0i   = 0.5;
 T     = 5.0;
 t_arr = 0:1e-3:T;
 
@@ -252,7 +260,7 @@ data.beta_z  =  beta_z;
 data.weight  = w_arr;
 
 % Initial and Goal Location
-data.init = p_arr_filt( :,   1 );
-data.goal = p_arr_filt( :, end );
+data.goal =  p_arr_filt( :, end );
+data.z0   = dp_arr_filt( :, 1   )/tau;
 
-save( 'learned_parameters/lift_up_down.mat', 'data' );
+save( [ 'learned_parameters/', traj_names{ idx } , '_pos.mat' ], 'data' );

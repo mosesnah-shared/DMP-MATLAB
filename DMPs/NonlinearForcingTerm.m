@@ -268,6 +268,12 @@ classdef NonlinearForcingTerm < handle
             % Get the index for the time array
             % That is between t0i and t0i + D
             idx_arr = ( t_arr >= t0i & t_arr <= t0i + obj.cs.tau );
+
+            % Shifting the element one side to the right 
+            % Adding this is quite important, since 
+            % The rollout requires one-step further from the integration
+            % [Notes] [Moses C. Nah] [2023.11.16]
+            idx_arr = circshift( idx_arr, -1 );
     
             % Calculate the forcing term 
             t_tmp = t_arr( idx_arr ) - t0i;

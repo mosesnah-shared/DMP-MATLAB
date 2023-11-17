@@ -33,8 +33,8 @@ alpha_s =  1.0;
 N = 50;
 
 % Parameters of the Transformation System
-alpha_z = 10.0;
-beta_z  = 0.25 * alpha_z;
+alpha_z   = 1000.0;
+beta_z    = 0.5 * alpha_z;
 
 cs        = CanonicalSystem( 'discrete', tau, alpha_s );
 trans_sys = TransformationSystem( alpha_z, beta_z, cs );

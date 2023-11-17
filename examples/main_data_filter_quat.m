@@ -16,8 +16,11 @@ fig_config( 'fontSize', 20, 'markerSize', 10 )
 %%  -- (1A) Calling the data and get the Forward Kinematics 
 
 % All dataset are saved under 'data' directory
-file_name = './data/example4/iiwa_example_pos';
-raw_data = parse_txt( [ file_name, '.txt' ], 0 );
+idx = 2;
+traj_names = [ "lift_up_down", "drawM" ]; 
+file_names = [ "example3/iiwa_example_orient", 'example4/iiwa_example_pos' ];
+
+raw_data = parse_txt( [ 'data/', file_names{ idx }, '.txt' ], 0 );
 
 % Read the time (with offset) and joint-trajectory data
 t_arr_demo = raw_data( :, 1 )' - raw_data( 1, 1 );
@@ -253,10 +256,10 @@ data.beta_z  =  beta_z;
 data.weight  =   w_arr;
 
 % Initial and Goal Location
-data.init = quat_arr_filt( :,   1 );
 data.goal = quat_arr_filt( :, end );
+data.z0   = dLogquat_arr( :, 1 )/tau;
 
-save( 'learned_parameters/draw_M_orient.mat', 'data' );
+save( [ 'learned_parameters/', traj_names{ idx } , '_orient.mat' ], 'data' );
 
 %% =======================================================
 %% (2-) Extension
