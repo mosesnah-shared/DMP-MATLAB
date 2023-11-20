@@ -267,7 +267,8 @@ classdef NonlinearForcingTerm < handle
     
             % Get the index for the time array
             % That is between t0i and t0i + D
-            idx_arr = ( t_arr >= t0i & t_arr <= t0i + obj.cs.tau );
+            %idx_arr = ( t_arr >= t0i & t_arr <= t0i + obj.cs.tau );
+            idx_arr = ( t_arr >= t0i  );
 
             % Shifting the element one side to the right 
             % Adding this is quite important, since 
