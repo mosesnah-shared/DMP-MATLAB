@@ -1,4 +1,4 @@
-% [Title]     Main Contraction Theory Position Example
+% [Title]     Main Contraction Theory Orientation Example
 % [Author]    Moses Chong-ook Nah
 % [Email]     mosesnah@mit.edu
 % [Update]    At 2023.11.16
@@ -12,22 +12,31 @@ fig_config( 'fontSize', 20, 'markerSize', 10 )
 %%  -- (1A) Calling the trajectory
 
 % The string list for the types of trajectories
-traj_names = [ "cosine", "radial", "drawM_pos", "lift_up_down_pos" ];
+% We have four trajectories for this example
+traj_names = [ "drawM_pos", "lift_up_down_pos" ];
 Ntraj = length( traj_names );
 
 traj_data = cell( 1, Ntraj );
 
+% Loading the data
 for i = 1 : Ntraj
     tmp = load( [ './learned_parameters/', traj_names{ i }, '.mat' ] );
     traj_data{ i } = tmp.data;
 end
 
+% We match the duration
+traj_data{1}.tau = 3;
+traj_data{2}.tau = 3;
+
+% Color array for plots
 c_arr = [ 0.0000, 0.4470, 0.7410;
           0.8500, 0.3250, 0.0980;
           0.9290, 0.6940, 0.1250;
           0.4940, 0.1840, 0.5560;
           0.4660, 0.6740, 0.1880;
           0.3010, 0.7450, 0.9330];
+
+clear tmp*
 
 %%  -- (1B) Generating the trajectories for Check
 

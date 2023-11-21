@@ -24,6 +24,7 @@ for i = 1 : Ntraj
     traj_data{ i } = tmp.data;
 end
 
+% We need to check this
 traj_data{3}.tau = 3;
 traj_data{4}.tau = 3;
 
@@ -203,7 +204,7 @@ for i = 1 : length( t_arr )-1
             
             gain = clip_func( t, td, ta );
             dx  = dx +  gain * ( - 1/Dp * [ zeros( 4, 1 ); fp ] + 1/Dn * [ zeros( 4, 1 ); fn ] ) ...
-                     +  gain * ( -gp + gn );
+                     +  gain * ( -gp + gn ); 
         end
 
     end

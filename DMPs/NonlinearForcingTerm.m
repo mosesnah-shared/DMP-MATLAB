@@ -216,6 +216,11 @@ classdef NonlinearForcingTerm < handle
             for i = 1 : n
                 act_weighted( i, : ) = sum( w_arr( i, : )' .* obj.calc_multiple_ith( t_arr, 1:obj.N ) ./obj.calc_whole_at_t( t_arr ), 1 );
             end
+
+            % Very important!
+            % For NaN, set all as zero
+            act_weighted( isnan( act_weighted ) ) = 0;
+
         end   
 
         function force_arr = calc_forcing_term( obj, t_arr, w_arr, t0i, scl )
@@ -267,7 +272,7 @@ classdef NonlinearForcingTerm < handle
     
             % Get the index for the time array
             % That is between t0i and t0i + D
-            %idx_arr = ( t_arr >= t0i & t_arr <= t0i + obj.cs.tau );
+            % idx_arr = ( t_arr >= t0i & t_arr <= t0i + obj.cs.tau );
             idx_arr = ( t_arr >= t0i  );
 
             % Shifting the element one side to the right 
