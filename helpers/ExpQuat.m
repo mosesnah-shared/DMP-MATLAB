@@ -20,10 +20,14 @@ qv = quat_imag( quat );
 tmp = norm( qv );
 
 % Create a new quaternion
-quat_new = zeros( 'like', quat );
+quat_new = zeros( size( quat ), 'like', quat );
 
-quat_new( 1   ) = exp( qw ) * cos( tmp );
-quat_new( 2:4 ) = exp( qw ) * sin( tmp )*qv/tmp;
+if tmp <= 1e-9
+    quat_new( 1   ) = 1;
+else
+    quat_new( 1   ) = exp( qw ) * cos( tmp );
+    quat_new( 2:4 ) = exp( qw ) * sin( tmp )*qv/tmp;
+end
 
 end
 

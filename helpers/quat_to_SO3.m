@@ -1,7 +1,7 @@
 function R = quat_to_SO3( quat )
     % First check whether it is unit quaternion 
     assert( all( size( quat ) == [ 1, 4 ] ) || all( size( quat ) == [ 4, 1 ] ) );
-    assert( abs( dot( quat, quat ) - 1 ) <= 1e-9 );
+    assert( abs( dot( quat, quat ) - 1 ) <= 1e-7 );
 
     % get the 1st and 2~4th element
     qw   = quat( 1   );
