@@ -76,7 +76,8 @@ R_arr( :, :, 1 ) =  rotx( 0 ) * roty( 0 ) * rotz( 0 );
 R_arr( :, :, 2 ) =  rotx( 0 ) * roty( 0 ) * rotz( 0 );
 
 % The input force array for the movements
-pos_force_arr = zeros( 3, length( t_arr )-1, Ntraj );
+pos_force_arr    = zeros( 3, length( t_arr )-1, Ntraj );
+orient_force_arr = zeros( 3, length( t_arr )-1, Ntraj );
 pos_goal_arr = zeros( 3, Ntraj );
 
 % The goal and initated time and final time for each movement
@@ -148,11 +149,15 @@ for i = 1 : Ntraj
     Sr  = diag( eq0 );
 
     input_arr = fs.calc_forcing_term( t_arr( 1:end-1 ), data.weight, t0i, Sr  );
-    
+    orient_force_arr( :, :, i ) = input_arr;
+
+
     [ eq_arr, z_arr, deq_arr ] = trans_sys.rollout( eq0, zeros( 3, 1 ), 1*input_arr, t0i, t_arr  );
 
      e_data_arr( :, :, i ) =  eq_arr;
     de_data_arr( :, :, i ) = deq_arr;
+
+    
 
     % Define the next movement's starting time.
     t0i = t0i + toff + data.tau;
@@ -161,7 +166,7 @@ end
 
 % Add position offset 
 poff = zeros( 3, 3 );
-poff( :, 1 ) = [  0.1; 0.5;  0.0 ];
+poff( :, 1 ) = [  0.1; 0.8;  0.0 ];
 p_data_arr( :, :, 2 ) = p_data_arr( :, :, 2 ) + pos_goal_arr( :, 1 ) + poff( :, 1 );
 
 pos_goal_arr( :, 1 ) = p_data_arr( :, end, 1 );
@@ -181,6 +186,7 @@ end
 % Also Plotting the orientation 
 % First, Reviving the orientations from quat to R arr
 R_data_arr = zeros( 3, 3, Nt, Ntraj );
+
 
 for i = 1 : Ntraj
     % First, extend the 3D array to quaternion
@@ -212,7 +218,7 @@ for i = 1 : Ntraj
     end
 end
 
-%%  -- (1C) Use Contraction Theory
+%%  -- (1C) Use Contraction Theory, for Position
 
 % Setting the Departure and Arrival Time 
 t_depart_arr = t0f_arr( 1 ) + toff + 0.1;
@@ -281,8 +287,89 @@ for i = 1 : length( t_arr )-1
 
 end
 
+%%  -- (1D) Use Contraction Theory, for Orientation
 
-%%  -- (1D) Generating the Video    
+% A naive approach
+
+% Define the A matrix and az, bz values
+% All should be identical, 
+% Tau can be arbitrarily chosen based on the proof
+% Choosing one arbitrarily
+tau = traj_orient_data{ 1 }.tau;
+as  = traj_orient_data{ 1 }.alpha_s;
+az  = traj_orient_data{ 1 }.alpha_z;
+bz  = traj_orient_data{ 1 }.beta_z;
+
+% A Matrix
+Amat = 1/tau * [            -as,       zeros( 1, 3 ),  zeros( 1, 3 ); 
+                  zeros( 3, 1 ),       zeros( 3, 3 ),       eye( 3 );
+                  zeros( 3, 1 ), -az * bz * eye( 3 ), -az * eye( 3 )];
+
+% The initial condition is identical to the first trajectory x0 value.
+x0 = [ 1; e_data_arr( :, 1, 1 ); de_data_arr( :, 1, 1 )*traj_pos_data{ 1 }.tau];
+
+% The coupled x array 
+xc_orient_arr = zeros( 7, length( t_arr ) );
+xc_orient_arr( :, 1 ) = x0;
+
+xcurr_orient = x0;
+% Iterating through the x_arr
+
+% Integrating over time. 
+for i = 1 : length( t_arr )-1
+    
+    t = t_arr( i );
+
+    if t <= tinit
+        dx = zeros( 7, 1 );
+    else
+        % Add the force for the first movement
+        dx  = Amat * xcurr_orient + 1/traj_pos_data{ 1 }.tau * [ zeros( 4, 1 ); orient_force_arr( :, i, 1 ) ];
+
+        % Iterating through the movement with activation
+        for j = 2 : Ntraj
+            fp = orient_force_arr( :, i, j-1 );  % Force for previous movement
+            fn = orient_force_arr( :, i, j   );  % Force for the next movement
+            
+            Dp = traj_orient_data{ j-1 }.tau;
+            Dn = traj_orient_data{ j   }.tau;
+
+            td   = t_depart_arr( j-1 );
+            ta   = t_arrive_arr( j-1 );
+            
+            gain = clip_func( t, td, ta );
+            dx   = dx +  gain * ( - 1/Dp * [ zeros( 4, 1 ); fp ] + 1/Dn * [ zeros( 4, 1 ); fn ] );
+        end
+
+    end
+
+    xc_orient_arr( :, i+1 ) = xc_orient_arr( :, i ) + dx * dt;     
+    xcurr_orient = xc_orient_arr( :, i+1 );
+
+end
+
+% The error quaternion
+e_coupled_arr = xc_orient_arr( 2:4, : );
+
+% Change to rotation matrix
+R_coupled_data_arr = zeros( 3, 3, Nt );
+
+% Care is required for reviving rotation
+% The goal orientation that is multiplied is used with slerp
+tmp_quat_arr = quat_slerp( traj_orient_data{ 1 }.goal, traj_orient_data{ 2 }.goal, t_arr, t_depart_arr, t_arrive_arr );
+
+% One requires slerp algorithm to define the quaternion
+for i = 1 : Nt
+    tmp1 = R3_to_quat( e_coupled_arr( :,i ) );
+    tmp2 = quat_mul( tmp_quat_arr( :, i ), quat_conj( ExpQuat( 0.5 * tmp1 ) )' );
+
+    R_coupled_data_arr( :, :, i ) = quat_to_SO3( tmp2 );
+end
+
+% One needs to define a rotation matrix 
+
+
+%%  -- (1E) Generating the Video    
 
 % v = VideoWriter( 'video.mp4','MPEG-4' );
 % v.FrameRate = 30;
@@ -292,8 +379,9 @@ Nstep = round( 1/dt / 30 );
 
 t1 = title( sprintf( 'Time %.3f s', 0 ) );
 
-axis equal; view( 3 );
-hold( a, 'on' )
+axis equal; view( [ 90, 0] );
+hold( a, 'on' );
+set( a, 'xlim', [-1.5, 1.5 ], 'ylim', [-0.5, 2.5 ], 'zlim', [-1.5, 1.5 ])
 s_arr = cell( 1, Ntraj );
    qx = cell( 1, Ntraj );
    qy = cell( 1, Ntraj );
@@ -309,25 +397,35 @@ for i = 1: Ntraj
     scatter3( a, p_data_arr( 1, end, i ), p_data_arr( 2, end, i ), p_data_arr( 3, end, i ), 20, 'filled', 'd', 'markerfacecolor', 'white', 'markeredgecolor', c_arr( i, : ), 'linewidth', 4 )  
 
     % The xyz frame
-    qx{ i } = quiver3( a, p_data_arr( 1, 1, i ), p_data_arr( 2, 1, i ), p_data_arr( 3, 1, i ), 2*tmp_scl * R_data_arr( 1, 1, 1, i ), 2*tmp_scl * R_data_arr( 2, 1, 1, i ), 2*tmp_scl * R_data_arr( 3, 1, 1, i ), 'linewidth', 4, 'color', 'r' );
-    qy{ i } = quiver3( a, p_data_arr( 1, 1, i ), p_data_arr( 2, 1, i ), p_data_arr( 3, 1, i ), 2*tmp_scl * R_data_arr( 1, 2, 1, i ), 2*tmp_scl * R_data_arr( 2, 2, 1, i ), 2*tmp_scl * R_data_arr( 3, 2, 1, i ), 'linewidth', 4, 'color', 'g' );
-    qz{ i } = quiver3( a, p_data_arr( 1, 1, i ), p_data_arr( 2, 1, i ), p_data_arr( 3, 1, i ), 2*tmp_scl * R_data_arr( 1, 3, 1, i ), 2*tmp_scl * R_data_arr( 2, 3, 1, i ), 2*tmp_scl * R_data_arr( 3, 3, 1, i ), 'linewidth', 4, 'color', 'b' );
+    qx{ i } = quiver3( a, p_data_arr( 1, 1, i ), p_data_arr( 2, 1, i ), p_data_arr( 3, 1, i ), tmp_scl * R_data_arr( 1, 1, 1, i ), tmp_scl * R_data_arr( 2, 1, 1, i ), tmp_scl * R_data_arr( 3, 1, 1, i ), 'linewidth', 4, 'color', 'r' );
+    qy{ i } = quiver3( a, p_data_arr( 1, 1, i ), p_data_arr( 2, 1, i ), p_data_arr( 3, 1, i ), tmp_scl * R_data_arr( 1, 2, 1, i ), tmp_scl * R_data_arr( 2, 2, 1, i ), tmp_scl * R_data_arr( 3, 2, 1, i ), 'linewidth', 4, 'color', 'g' );
+    qz{ i } = quiver3( a, p_data_arr( 1, 1, i ), p_data_arr( 2, 1, i ), p_data_arr( 3, 1, i ), tmp_scl * R_data_arr( 1, 3, 1, i ), tmp_scl * R_data_arr( 2, 3, 1, i ), tmp_scl * R_data_arr( 3, 3, 1, i ), 'linewidth', 4, 'color', 'b' );
+
+    
 end
 
 % Draw the main marker
 sc = scatter3( a, xc_arr( 2, 1 ), xc_arr( 3, 1 ), xc_arr( 4, 1 ), 100, 'filled', 'o', 'markerfacecolor', 'white', 'markeredgecolor', 'black', 'linewidth', 4 );
 
+% The xyz frame
+qxc = quiver3( a, xc_arr( 2, 1 ), xc_arr( 3, 1 ), xc_arr( 4, 1 ), tmp_scl * R_coupled_data_arr( 1, 1, 1 ), tmp_scl * R_coupled_data_arr( 2, 1, 1 ), tmp_scl * R_coupled_data_arr( 3, 1, 1 ), 'linewidth', 4, 'color', 'r' );
+qyc = quiver3( a, xc_arr( 2, 1 ), xc_arr( 3, 1 ), xc_arr( 4, 1 ), tmp_scl * R_coupled_data_arr( 1, 2, 1 ), tmp_scl * R_coupled_data_arr( 2, 2, 1 ), tmp_scl * R_coupled_data_arr( 3, 2, 1 ), 'linewidth', 4, 'color', 'g' );
+qzc = quiver3( a, xc_arr( 2, 1 ), xc_arr( 3, 1 ), xc_arr( 4, 1 ), tmp_scl * R_coupled_data_arr( 1, 3, 1 ), tmp_scl * R_coupled_data_arr( 2, 3, 1 ), tmp_scl * R_coupled_data_arr( 3, 3, 1 ), 'linewidth', 4, 'color', 'b' );    
+
 for i = 1 : Nstep : length( t_arr )
     
     for j = 1 : Ntraj
         set( s_arr{ j }, 'XData', p_data_arr( 1, i, j ), 'YData', p_data_arr( 2, i, j ), 'ZData', p_data_arr( 3, i, j ) );
-        set( qx{ j }, 'XData', p_data_arr( 1, i, j ), 'YData', p_data_arr( 2, i, j ), 'ZData', p_data_arr( 3, i, j ), 'UData', 2*tmp_scl * R_data_arr( 1, 1, i, j ), 'VData', 2*tmp_scl * R_data_arr( 2, 1, i, j ), 'WData', 2*tmp_scl * R_data_arr( 3, 1, i, j ))
-        set( qz{ j }, 'XData', p_data_arr( 1, i, j ), 'YData', p_data_arr( 2, i, j ), 'ZData', p_data_arr( 3, i, j ), 'UData', 2*tmp_scl * R_data_arr( 1, 2, i, j ), 'VData', 2*tmp_scl * R_data_arr( 2, 2, i, j ), 'WData', 2*tmp_scl * R_data_arr( 3, 2, i, j ))
-        set( qy{ j }, 'XData', p_data_arr( 1, i, j ), 'YData', p_data_arr( 2, i, j ), 'ZData', p_data_arr( 3, i, j ), 'UData', 2*tmp_scl * R_data_arr( 1, 3, i, j ), 'VData', 2*tmp_scl * R_data_arr( 2, 3, i, j ), 'WData', 2*tmp_scl * R_data_arr( 3, 3, i, j ))
+        set( qx{ j }, 'XData', p_data_arr( 1, i, j ), 'YData', p_data_arr( 2, i, j ), 'ZData', p_data_arr( 3, i, j ), 'UData', tmp_scl * R_data_arr( 1, 1, i, j ), 'VData', tmp_scl * R_data_arr( 2, 1, i, j ), 'WData', tmp_scl * R_data_arr( 3, 1, i, j ))
+        set( qy{ j }, 'XData', p_data_arr( 1, i, j ), 'YData', p_data_arr( 2, i, j ), 'ZData', p_data_arr( 3, i, j ), 'UData', tmp_scl * R_data_arr( 1, 2, i, j ), 'VData', tmp_scl * R_data_arr( 2, 2, i, j ), 'WData', tmp_scl * R_data_arr( 3, 2, i, j ))
+        set( qz{ j }, 'XData', p_data_arr( 1, i, j ), 'YData', p_data_arr( 2, i, j ), 'ZData', p_data_arr( 3, i, j ), 'UData', tmp_scl * R_data_arr( 1, 3, i, j ), 'VData', tmp_scl * R_data_arr( 2, 3, i, j ), 'WData', tmp_scl * R_data_arr( 3, 3, i, j ))
     end
     
-    set( sc, 'XData', xc_arr( 2, i ), 'YData', xc_arr( 3, i ), 'ZData', xc_arr( 4, i ) )
-   
+    set(  sc, 'XData', xc_arr( 2, i ), 'YData', xc_arr( 3, i ), 'ZData', xc_arr( 4, i ) )
+    set( qxc, 'XData', xc_arr( 2, i ), 'YData', xc_arr( 3, i ), 'ZData', xc_arr( 4, i ), 'UData', tmp_scl * R_coupled_data_arr( 1, 1, i ), 'VData', tmp_scl * R_coupled_data_arr( 2, 1, i ), 'WData', tmp_scl * R_coupled_data_arr( 3, 1, i ) )
+    set( qyc, 'XData', xc_arr( 2, i ), 'YData', xc_arr( 3, i ), 'ZData', xc_arr( 4, i ), 'UData', tmp_scl * R_coupled_data_arr( 1, 2, i ), 'VData', tmp_scl * R_coupled_data_arr( 2, 2, i ), 'WData', tmp_scl * R_coupled_data_arr( 3, 2, i ) )
+    set( qzc, 'XData', xc_arr( 2, i ), 'YData', xc_arr( 3, i ), 'ZData', xc_arr( 4, i ), 'UData', tmp_scl * R_coupled_data_arr( 1, 3, i ), 'VData', tmp_scl * R_coupled_data_arr( 2, 3, i ), 'WData', tmp_scl * R_coupled_data_arr( 3, 3, i ) )
+
 
     drawnow 
     
