@@ -223,7 +223,7 @@ classdef NonlinearForcingTerm < handle
 
         end   
 
-        function force_arr = calc_forcing_term( obj, t_arr, w_arr, t0i, scl )
+        function force_arr = calc_forcing_term( obj, t_arr, w_arr, t0i, scl, varargin )
             % ===========================================================================
             % Descriptions
             % ------------
@@ -272,8 +272,14 @@ classdef NonlinearForcingTerm < handle
     
             % Get the index for the time array
             % That is between t0i and t0i + D
-            % idx_arr = ( t_arr >= t0i & t_arr <= t0i + obj.cs.tau );
-            idx_arr = ( t_arr >= t0i  );
+            if nargin == 6
+                if strcmp( varargin{ 1 }, 'trimmed' )
+                    idx_arr = ( t_arr >= t0i & t_arr <= t0i + obj.cs.tau );
+                end
+                
+            else 
+                idx_arr = ( t_arr >= t0i  );
+            end
 
             % Shifting the element one side to the right 
             % Adding this is quite important, since 
