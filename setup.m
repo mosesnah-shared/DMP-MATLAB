@@ -15,7 +15,7 @@
 clear; close all; clc;
 
 % Include all the subdirectories
-add_folders( 'DMPs', 'examples', 'trajectory', 'utils', 'GeometryLibrary' );
+add_folders( 'DMPs', 'examples', 'trajectory', 'utils', 'GeometryLibrary/MATLAB' );
 
 % Also run the setup script under Explicit-MATLAB
 cd( 'Explicit-MATLAB' );
