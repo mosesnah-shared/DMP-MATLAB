@@ -12,7 +12,7 @@ fig_config( 'fontSize', 20, 'markerSize', 10 )
 %%  -- (1A) Import Data
 
 % Import the learned weights
-alphabets = { 'R', 'A', 'L' };
+alphabets = { 'M', 'A', 'T', 'L', 'A', 'B' };
 Na = length( alphabets );
 
 % dataset 
@@ -36,7 +36,7 @@ Nt    = length( t_arr );
 
 p_data_arr = zeros( 2, Nt, Na );
 
-scl_arr = [ 1.0, 1.5, 1.3];
+scl_arr = [ 1.3, 1.5, 1.3, 1.3, 1.5, 1.5];
 
 % We need to first generate the DMP 
 for i = 1 : Na
@@ -67,7 +67,7 @@ end
 
 %% -- (1C) Plotting the alphabets
 
-xy_off = [ 0,0 ; 10, -1; 23, 12 ]';
+xy_off = [ 0,0 ; 14, -1; 23, 10; 40, 12; 50, -1; 60, 12 ]';
 
 f = figure( ); a = axes( 'parent', f );
 hold( a, 'on' )
@@ -82,7 +82,7 @@ axis equal
 %%  -- (2A) Call the DAta
 
 % Import the learned weights
-alphabets = { 'R', 'A', 'L' };
+alphabets = { 'M', 'A', 'T', 'L', 'A', 'B' };
 Ntraj = length( alphabets );
 
 % dataset 
@@ -101,13 +101,16 @@ end
 
 c_arr = [ 0.4940, 0.1840, 0.5560;
           0.6350, 0.0780, 0.1840;
-      	  0.0000, 0.4470, 0.7410];	
+      	  0.0000, 0.4470, 0.7410;
+          0.8500, 0.3250, 0.0980;
+          0.6350, 0.0780, 0.1840;
+      	  0.4660, 0.6740, 0.1880];	
 
 
 %%  -- (2B) Generating the trajectories 
 
 tinit =    1.0;           % The initial time of the simulation
-T     =   10.0;           % The   whole time of the simulation 
+T     =   20.0;           % The   whole time of the simulation 
 toff  =   -0.1;           % Time-offset for the subsequent movement to start, must be negative
 dt    =   1e-3;           % Time-step  for the simulation
 t_arr = 0:dt:T;           % Time array for the simulation
@@ -121,7 +124,7 @@ assert( toff < 0 );
 dp_data_arr = zeros( 2, length( t_arr ), Ntraj );
 
 % Scaling and Rotation of the trajectory
-scl_arr = [ 1.0, 1.5, 1.3];
+scl_arr = [ 1.3, 1.5, 1.3, 1.3, 1.5, 1.5];
 
 % The input force array for the movements
 force_arr = zeros( 2, length( t_arr )-1, Ntraj );
@@ -186,14 +189,21 @@ for i = 1 : Ntraj
 end
 
 % Add position offset
-xy_off = [ 0,0 ;9, 0; 23, 12.5 ]';
+xy_off = [ 0,0 ; 14, -1; 23, 10; 40, 12; 50, -1; 62, 12 ]';
 
 p_data_arr( :, :, 2 ) = p_data_arr( :, :, 2 ) + xy_off( :, 2 );
 p_data_arr( :, :, 3 ) = p_data_arr( :, :, 3 ) + xy_off( :, 3 );
+p_data_arr( :, :, 4 ) = p_data_arr( :, :, 4 ) + xy_off( :, 4 );
+p_data_arr( :, :, 5 ) = p_data_arr( :, :, 5 ) + xy_off( :, 5 );
+p_data_arr( :, :, 6 ) = p_data_arr( :, :, 6 ) + xy_off( :, 6 );
+
 
 goal_arr( :, 1 ) = p_data_arr( :, end, 1 );
 goal_arr( :, 2 ) = p_data_arr( :, end, 2 );
 goal_arr( :, 3 ) = p_data_arr( :, end, 3 );
+goal_arr( :, 4 ) = p_data_arr( :, end, 4 );
+goal_arr( :, 5 ) = p_data_arr( :, end, 5 );
+goal_arr( :, 6 ) = p_data_arr( :, end, 6 );
 
 % Plotting the positions to double cehck
 f = figure( ); a = axes( 'parent', f );
@@ -209,8 +219,8 @@ end
 %%  -- (2C) Use Contraction Theory
 
 % Setting the Departure and Arrival Time 
-t_depart_arr = t0f_arr( 1:2 ) - [ 0.1, 0.08 ];
-t_arrive_arr = t0i_arr( 2:3 ) + [ 0.1, 0.30 ];
+t_depart_arr = t0f_arr( 1:5 ) - [ 0.1, 0.08, 0.1, 0.1, 0.1 ];
+t_arrive_arr = t0i_arr( 2:6 ) + [ 0.1, 0.30, 0.3, 0.3, 0.3 ];
 
 % Define the A matrix and az, bz values
 % All should be identical, 
@@ -306,7 +316,7 @@ Nstep = round( 1/dt / 30 );
 f = figure( ); a = axes( 'parent', f );
 t1 = title( sprintf( 'Time %.3f s', 0 ) );
 axis equal;
-set( a, 'xlim', [ -5, 33 ], 'ylim', [-3, 15] )
+% set( a, 'xlim', [ -5, 33 ], 'ylim', [-3, 15] )
 hold on
 s_arr = cell( 1, Ntraj );
 

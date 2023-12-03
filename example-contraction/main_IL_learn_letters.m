@@ -12,7 +12,7 @@ fig_config( 'fontSize', 20, 'markerSize', 10 )
 %%  -- (1A) Import Data
 
 % Import the data
-traj_name = 'R';
+traj_name = 'B';
 load( [ './alphabets/', traj_name, '.mat' ] );
     
    t_arr = data.t_arr;
