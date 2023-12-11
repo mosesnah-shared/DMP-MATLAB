@@ -39,4 +39,28 @@ set( a2, 'xticklabel', { }, 'yticklabel', { }, 'xlim', [ 0, 1 ] )
 
 
 %%  -- (1B) Nonlinear Forcing Term for Rhythmic Movement
-% TBD
+
+% Canonical System and Nonlinear Forcing Term
+type = 'rhythmic'; 
+
+
+t_arr   = 0:1e-3:8.0;
+Tp      =   4.0;         % Period of the Rhythmic movement
+tau     =   Tp/(2*pi);   % Time Constant, which is Tp/2pi
+alpha_s = 1.0;
+N = 5;
+
+cs = CanonicalSystem( type, tau, alpha_s ); 
+fs = NonlinearForcingTerm( cs, N );
+
+a1 = subplot( 2, 1, 1 );
+a2 = subplot( 2, 1, 2 );
+hold( a1, 'on' );
+hold( a2, 'on' );
+
+plot( a1,          t_arr  , fs.calc_multiple_ith( t_arr, 1:N ), 'linewidth', 3 );
+plot( a2, cs.calc( t_arr ), fs.calc_multiple_ith( t_arr, 1:N ), 'linewidth', 3 );    
+
+% Overlap of the whole activation
+% plot( a1, t_arr, fs.calc_whole_at_t( t_arr ), 'color', 'k' )
+plot( a2, cs.calc( t_arr ), fs.calc_whole_at_t( t_arr ), 'color', 'k', 'linewidth', 5 )

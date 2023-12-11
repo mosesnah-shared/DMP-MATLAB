@@ -49,15 +49,15 @@ classdef NonlinearForcingTerm < handle
             % For Discrete Movement, we followed from:
             % Saveriano, Matteo, et al. IJRR (2023)
             if obj.cs.type == 0
-                obj.c_arr = exp( -obj.cs.alpha_s/( obj.N-1 ) * ( 0:(obj.N-1) ) );
+                obj.c_arr = exp( -obj.cs.alpha_s/( obj.N-1 ) * ( 0:(obj.N-1) )  );
                 obj.h_arr( 1:end-1 ) = 1.0 ./ diff( obj.c_arr ).^2;
                 obj.h_arr(     end ) = obj.h_arr( end-1 );
             
             % For Rhythmic Movement, the ci array followed from:
             % Saveriano, Matteo, et al. IJRR (2023)            
             else
-                obj.c_arr = 2*pi/obj.N * ( 0.5:1:obj.N );
-                obj.h_arr = obj.N * ones( 1, obj.N );
+                obj.c_arr = 2*pi/obj.N * ( 0:obj.N-1 );
+                obj.h_arr = 1.0*obj.N * ones( 1, obj.N );
             end
 
         end
@@ -263,33 +263,38 @@ classdef NonlinearForcingTerm < handle
 
             % Check the scaling matrix is nxn matrix
             assert( all( [ n, n ] == size( scl ) ) );
-                
-            % The time array's maximum value should be bigger than t0i
-            assert( t0i <= max( t_arr ) && t0i >= 0 );
     
-            % Initialize the forcing term array
-            force_arr = zeros( n, Nt );
+            if obj.cs.type == 0
     
-            % Get the index for the time array
-            % That is between t0i and t0i + D
-            if nargin == 6
-                if strcmp( varargin{ 1 }, 'trimmed' )
-                    idx_arr = ( t_arr >= t0i & t_arr <= t0i + obj.cs.tau );
+                % The time array's maximum value should be bigger than t0i
+                assert( t0i <= max( t_arr ) && t0i >= 0 );
+        
+                % Initialize the forcing term array
+                force_arr = zeros( n, Nt );
+        
+                % Get the index for the time array
+                % That is between t0i and t0i + D
+                if nargin == 6
+                    if strcmp( varargin{ 1 }, 'trimmed' )
+                        idx_arr = ( t_arr >= t0i & t_arr <= t0i + obj.cs.tau );
+                    end
+                    
+                else 
+                    idx_arr = ( t_arr >= t0i  );
                 end
-                
-            else 
-                idx_arr = ( t_arr >= t0i  );
-            end
-
-            % Shifting the element one side to the right 
-            % Adding this is quite important, since 
-            % The rollout requires one-step further from the integration
-            % [Notes] [Moses C. Nah] [2023.11.16]
-            idx_arr = circshift( idx_arr, -1 );
     
-            % Calculate the forcing term 
-            t_tmp = t_arr( idx_arr ) - t0i;
-            force_arr( :, idx_arr ) = scl * ( obj.cs.calc( t_tmp ) .* obj.calc_whole_weighted_at_t( t_tmp, w_arr ) );
+                % Shifting the element one side to the right 
+                % Adding this is quite important, since 
+                % The rollout requires one-step further from the integration
+                % [Notes] [Moses C. Nah] [2023.11.16]
+                idx_arr = circshift( idx_arr, -1 );
+        
+                % Calculate the forcing term 
+                t_tmp = t_arr( idx_arr ) - t0i;
+                force_arr( :, idx_arr ) = scl * ( obj.cs.calc( t_tmp ) .* obj.calc_whole_weighted_at_t( t_tmp, w_arr ) );
+            else
+                force_arr = obj.calc_whole_weighted_at_t( t_arr, w_arr );
+            end
 
         end
 

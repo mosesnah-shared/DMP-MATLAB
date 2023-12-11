@@ -20,9 +20,9 @@ fig_config( 'fontSize', 20, 'markerSize', 10 )
 % For (1), (2) the g subscript is to emphasize the initial/final
 % position of a "d"emonstrated trajectory
 
-y0d = [ 0.0;  2.0;  4.0 ];
-gd  = [ 1.0; -1.0; -2.0 ];
-D   = 2.0;
+y0d = [ 4.0; 4.0 ];
+gd  = [ 0.0; 0.0 ];
+D   = 4.0;
 n   = length( y0d );
 
 % Parameters for the Canonical System
@@ -33,7 +33,7 @@ alpha_s =  1.0;
 N = 50;
 
 % Parameters of the Transformation System
-alpha_z   = 1000.0;
+alpha_z   = 100.0;
 beta_z    = 0.5 * alpha_z;
 
 cs        = CanonicalSystem( 'discrete', tau, alpha_s );
@@ -81,19 +81,19 @@ w_arr = transpose( ( Phi_mat' * Phi_mat )^(-1) * Phi_mat' * f_arr' * scl^(-1) );
 %%  -- (1C) Rollout Generating a Full trajectory with the Transformation System
 
 % Rollout with the weight array 
-t0i   = 1.0;
-T     = 5.0;
-Nt    = 3000;
+t0i   = 0.0;
+T     = 8.0;
+Nt    = 10000;
 t_arr = linspace( 0, T, Nt+1 ); 
 
 % The new y0, z0, g
-y0 = 2 * ones( n, 1 );
+y0 = y0d;
 z0 = zeros( n, 1 );
-g  = 4 * ones( n, 1 );
+g  = zeros( n, 1 );
 
-input_arr = fs.calc_forcing_term( t_arr( 1:end-1 ), w_arr, t0i, diag( g - y0 ) );
+input_arr_discrete = fs.calc_forcing_term( t_arr( 1:end-1 ), w_arr, t0i, diag( g - y0 ) );
 
-[ y_arr, z_arr, dy_arr ] = trans_sys.rollout( y0, z0, g, input_arr, t0i, t_arr  );
+[ y_arr, ~, dy_arr ] = trans_sys.rollout( y0, z0, g, input_arr_discrete, t0i, t_arr  );
 
 f = figure( ); a = axes( 'parent', f );
 hold( a, 'on' )
@@ -250,3 +250,91 @@ end
 axis equal
 lw = 2;
 set( a, 'view',  [38.8448, 16.6583], 'xlim', [-lw, lw], 'ylim', [-lw, lw], 'zlim', [-lw, lw] )
+
+%% =======================================================
+%% (3-) Imitation Learning for Oscillation
+%%  -- (1A) Oscillation
+
+% The number of Basis Function for the Nonlinear Forcing Term
+N = 20;
+
+% Parameters for the Canonical System
+T_p     = 2.0;
+tau     = T_p/(2*pi);
+alpha_s =  1.0;
+
+% Parameters of the Transformation System
+alpha_z   = 100.0;
+beta_z    = 0.5 * alpha_z;
+
+cs        = CanonicalSystem( 'rhythmic', tau, alpha_s );
+trans_sys = TransformationSystem( alpha_z, beta_z, cs );
+fs        = NonlinearForcingTerm( cs, N );
+
+% P sample points for the minimum jerk trajectory.
+P = 200;
+
+% Equal Sampling along time with duration D
+t_P = linspace( 0.0, T_p, P );
+
+% Desired Trajectories, position, velocity and acceleration.
+  y_des = zeros( 2, P );
+ dy_des = zeros( 2, P );
+ddy_des = zeros( 2, P );
+
+  y_des( 1, : ) = cos( pi * t_P );
+  y_des( 2, : ) = sin( pi * t_P );
+
+ dy_des( 1, : ) = -pi * sin( pi * t_P );
+ dy_des( 2, : ) =  pi * cos( pi * t_P );
+
+ddy_des( 1, : ) = -pi^2 * cos( pi * t_P );
+ddy_des( 2, : ) = -pi^2 * sin( pi * t_P );
+
+% Calculating the required Nonlinear Forcing Term
+f_arr   = trans_sys.get_desired( y_des, dy_des, ddy_des, zeros( 2, 1) );
+
+% The phi matrix 
+Phi_mat = zeros( P, N );
+
+% Interating along the sample points
+for i = 1 : P 
+    t = t_P( i );
+    Phi_mat( i, : ) = fs.calc_multiple_ith( t, 1:N )/ fs.calc_whole_at_t( t );
+end
+
+% Scaling matrix
+% There are two options, from Koutras and Doulgeri (2020) and the Ijspeert et al. (2013).
+% For this time, we use Ijspeert et al. (2013).
+w_arr = transpose( ( Phi_mat' * Phi_mat )^(-1) * Phi_mat' * f_arr' );
+
+% Rollout with the weight array 
+t0i   = 0.0;
+T     = 4*T_p;
+Nt    = 10000;
+t_arr = linspace( 0, T, Nt+1 ); 
+
+% The new y0, z0, g
+y0 =  y_des( :, 1 );
+z0 = dy_des( :, 1 )*tau;
+g  = zeros( 2, 1 );
+
+input_arr_rhythmic = fs.calc_forcing_term( t_arr( 1:end-1 ), w_arr, t0i, eye( 2 ) );
+
+[ y_arr, z_arr, dy_arr ] = trans_sys.rollout( y0, z0, g, input_arr_rhythmic, t0i, t_arr  );
+
+f = figure( ); a = axes( 'parent', f );
+hold( a, 'on' )
+plot( a, y_arr( 1, : ), y_arr( 2, : ) )
+axis equal
+
+%%  -- (2B) Mixing the Two Movement Primitives
+
+alpha = 0:0.1:1.0;
+f = figure( ); a = axes( 'parent', f );
+hold on, axis equal
+for i = 1:length( alpha )
+    a = alpha( i );
+    [ y_arr, z_arr, dy_arr ] = trans_sys.rollout( a*y0+(1-a)*y0d, a*z0, g, a * input_arr_rhythmic + (1-a)*input_arr_discrete, t0i, t_arr  );
+    plot( 2*i + y_arr( 1, : ), y_arr( 2, : ) )
+end
