@@ -57,7 +57,7 @@ classdef NonlinearForcingTerm < handle
             % Saveriano, Matteo, et al. IJRR (2023)            
             else
                 obj.c_arr = 2*pi/obj.N * ( 0:obj.N-1 );
-                obj.h_arr = 1.0*obj.N * ones( 1, obj.N );
+                obj.h_arr = 2.5*obj.N * ones( 1, obj.N );
             end
 
         end

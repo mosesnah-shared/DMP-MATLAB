@@ -307,21 +307,21 @@ fig_save( f, './figures/image1')
 
 %%  -- (2E) Generating the Video    
 
-% v = VideoWriter( 'video.mp4','MPEG-4' );
-% v.FrameRate = 30;
+v = VideoWriter( 'video.mp4','MPEG-4' );
+v.FrameRate = 30;
 
-% open( v );f
+open( v );f
 Nstep = round( 1/dt / 30 );
 
 f = figure( ); a = axes( 'parent', f );
 t1 = title( sprintf( 'Time %.3f s', 0 ) );
 axis equal;
-% set( a, 'xlim', [ -5, 33 ], 'ylim', [-3, 15] )
+set( a, 'xlim', [ -10, 80 ], 'ylim', [-10, 20] )
 hold on
 s_arr = cell( 1, Ntraj );
 
 for i = 1: Ntraj
-    s_arr{ i } = scatter3( a, p_data_arr( 1, 1, i ), p_data_arr( 2, 1, i ), 100, 'filled', 'o', 'markerfacecolor', c_arr( i, : ), 'markeredgecolor', c_arr( i, : ), 'linewidth', 4 );
+    s_arr{ i } = scatter3( a, p_data_arr( 1, 1, i ), p_data_arr( 2, 1, i ), 200, 'filled', 'o', 'markerfacecolor', c_arr( i, : ), 'markeredgecolor', c_arr( i, : ), 'linewidth', 4 );
 
     plot( a, p_data_arr( 1, :, i ), p_data_arr( 2, :, i ), 'linewidth', 5, 'color', c_arr( i, : ) )
     scatter( a, p_data_arr( 1,   1, i ), p_data_arr( 2,   1, i ), 20, 'filled', 'o', 'markerfacecolor', 'white', 'markeredgecolor', c_arr( i, : ), 'linewidth', 4 )
@@ -330,7 +330,7 @@ for i = 1: Ntraj
 end
 
 % Draw the main marker
-sc = scatter( a, xc_arr( 2, 1 ), xc_arr( 3, 1 ), 100, 'filled', 'o', 'markerfacecolor', 'white', 'markeredgecolor', 'black', 'linewidth', 4 );
+sc = scatter( a, xc_arr( 2, 1 ), xc_arr( 3, 1 ), 200, 'filled', 'o', 'markerfacecolor', 'white', 'markeredgecolor', 'black', 'linewidth', 4 );
 
 for i = 1 : Nstep : length( t_arr )
     
@@ -345,10 +345,10 @@ for i = 1 : Nstep : length( t_arr )
     set( t1, 'string', sprintf( 'Time %.3f s', t_arr( i ) ) );
     
     tmp_frame = getframe( f );
-%     writeVideo( v,tmp_frame );
+    writeVideo( v,tmp_frame );
     i
 end
-% close( v );
+close( v );
 
 %% =====================================================================
 %% (3-) Spectrum of Movements
