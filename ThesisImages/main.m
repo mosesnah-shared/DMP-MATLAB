@@ -105,7 +105,7 @@ N = 25;
 alpha_z   = 50.0;
 beta_z    = 0.25 * alpha_z;
 
-P   = 50;
+P   = 100;
 t_P = linspace( 0, Tp, P );
   q_des =        r0 * [  cos( w * t_P );  sin( w * t_P ) ];
  dq_des =  w^1 * r0 * [ -sin( w * t_P );  cos( w * t_P ) ];
@@ -200,6 +200,33 @@ fig_save( f, 'ThesisImages/images/joint_space_imit_learn' )
 % Load the M data
 data = load( 'learned_parameters/M.mat' ); data = data.data;
 
+% System parameters
+tau = 1.0;
+alpha_s = data.alpha_s;
+alpha_z = data.alpha_z;
+ beta_z =  data.beta_z;
+
+W = data.weight;
+N = size( W, 2 );
+
+% DMP, three primitives
+cs        = CanonicalSystem( 'discrete', tau, alpha_s );
+trans_sys = TransformationSystem( alpha_z, beta_z, cs );
+fs        = NonlinearForcingTerm( cs, N );
+
+pg = data.goal;
+pi = zeros( 2, 1 );
+
+t0i = 0.0;
+
+% Nt is the sample point
+Nt = 5000;
+t_arr_dis = linspace( 0, tau, Nt+1 );
+
+input_arr = fs.calc_forcing_term( t_arr_dis( 1:end-1 ), W, t0i, eye( 2 ) );
+[ y_arr_dis, ~, ~ ] = trans_sys.rollout( pi, data.z0/tau, pg, input_arr, t0i, t_arr_dis  );
+
+plot( y_arr_dis( 1, : ),y_arr_dis( 2, : ))
 %%  -- (2B) For Rhythmic Movement
 
 
