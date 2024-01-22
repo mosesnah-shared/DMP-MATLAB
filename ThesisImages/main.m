@@ -195,7 +195,7 @@ fig_save( f, 'ThesisImages/images/joint_space_imit_learn' )
 
 %% =======================================================
 %% (2-) Imitation Learning for Task-space, Position, Section 4.4.2
-%%  -- (2A) For Discrete Movement, Planar
+%%  -- (2A) For Discrete Movement
 
 % Load the M data
 data = load( 'learned_parameters/M2.mat' ); data = data.data;
@@ -236,7 +236,7 @@ ylabel( 'Y (m)', 'fontsize', 35 )
 
 % Scale the trajectory 
 scl    = [ 0.2, 0.5, 1.0, 1.5, 2.0 ];
-lw_arr = [   5,   7 ,  8, 10,  12 ];
+lw_arr = [   5,   5,   8,   5,   5 ];
 mk_arr = [  150, 200, 300, 350, 400 ];
 
 f = figure(); a = axes( 'parent', f );
@@ -260,8 +260,9 @@ for i = 1 : length( scl )
 
 end
 set( a, 'fontsize', 30, 'xlim', [-2,20], 'ylim', [-2, 16], 'ytick', 0:5:15, 'xtick', 0:5:20 )
-xlabel( 'X (m)', 'fontsize', 35 )
-ylabel( 'Y (m)', 'fontsize', 35 )
+set( a, 'xticklabel', {}, 'yticklabel', {}, 'zticklabel', {} )
+% xlabel( 'X (m)', 'fontsize', 35 )
+% ylabel( 'Y (m)', 'fontsize', 35 )
 % fig_save( f, 'ThesisImages/images/task_space_position_imit2' )
 
 % Rotate the trajectory
@@ -275,22 +276,25 @@ for ang = ang_arr
 
     if  abs( ang ) >= 1e-8
         lc = [ 0.0000, 0.0000, 0.0000 ];
+        lw = 4;
     else
         lc = [ 0.0000, 0.4470, 0.7410 ];
+        lw = 8;
     end
 
     [ y_tmp, ~, ~ ] = trans_sys.rollout( zeros( 3, 1 ), R * data.z0 * data.tau, R*data.goal, R*input_arr, t0i, t_arr_dis  );
         
-    plot3( a, y_tmp( 1, : ), y_tmp( 3, : ), y_tmp( 2, : ), 'linewidth', 8, 'color', lc )
+    plot3( a, y_tmp( 1, : ), y_tmp( 3, : ), y_tmp( 2, : ), 'linewidth', lw, 'color', lc )
     scatter3( a, y_tmp( 1, 1   ), y_tmp( 3, 1   ), y_tmp( 2, 1 ), 500, 'filled', 'o','markerfacecolor', [ 1,1,1], 'markeredgecolor', [0,0,0], 'linewidth', 5 )
     scatter3( a, y_tmp( 1, end ), y_tmp( 3, end ), y_tmp( 2, end ), 500, 'filled', 'd', 'markerfacecolor', [ 1,1,1], 'markeredgecolor', [0,0,0], 'linewidth', 5 )    
    
 end
 
 set( a, 'view', [31.7014, 8.9169], 'fontsize',30 )
-xlabel( a, 'X (m)' );
-ylabel( a, 'Y (m)' );
-zlabel( a, 'Z (m)' );
+set( a, 'xticklabel', {}, 'yticklabel', {}, 'zticklabel', {} )
+% xlabel( a, 'X (m)' );
+% ylabel( a, 'Y (m)' );
+% zlabel( a, 'Z (m)' );
 
 fig_save( f, 'ThesisImages/images/task_space_position_imit3' )
 
