@@ -195,10 +195,11 @@ fig_save( f, 'ThesisImages/images/joint_space_imit_learn' )
 
 %% =======================================================
 %% (2-) Imitation Learning for Task-space, Position, Section 4.4.2
-%%  -- (2A) For Discrete Movement
+%%  -- (2A) For Discrete Movement, Planar
 
 % Load the M data
 data = load( 'learned_parameters/M.mat' ); data = data.data;
+tmp_blue = [0 0.4470 0.7410];
 
 % System parameters
 tau = 1.0;
@@ -226,7 +227,36 @@ t_arr_dis = linspace( 0, tau, Nt+1 );
 input_arr = fs.calc_forcing_term( t_arr_dis( 1:end-1 ), W, t0i, eye( 2 ) );
 [ y_arr_dis, ~, ~ ] = trans_sys.rollout( pi, data.z0/tau, pg, input_arr, t0i, t_arr_dis  );
 
-plot( y_arr_dis( 1, : ),y_arr_dis( 2, : ))
+f = figure( ); a = axes( 'parent', f );
+hold on
+plot( a, y_arr_dis( 1, : ), y_arr_dis( 2, : ), 'linewidth', 5, 'color', tmp_blue )
+scatter( a, y_arr_dis( 1,   1 ), y_arr_dis( 2,   1 ), 500, 'o', 'filled' )
+scatter( a, y_arr_dis( 1, end ), y_arr_dis( 2, end ), 500, 'd', 'filled' )
+axis equal
+
+% Scaling
+scl = [ 0.2, 0.5, 1.0, 1.5, 2.0 ];
+lw  = [   3,   3, 8.0, 3.0, 3.0 ];
+f = figure( ); a = axes( 'parent', f );
+hold on
+Ns = length( scl );	
+
+p_arr_scl = cell( 1, Ns );
+for i = 1 : Ns
+    
+    input_arr = fs.calc_forcing_term( t_arr_dis( 1:end-1 ), scl( i ) * W, t0i, eye( 2 ) );
+    [ y_arr_dis, ~, ~ ] = trans_sys.rollout( pi, data.z0/tau, scl( i )*pg, input_arr, t0i, t_arr_dis  );
+    
+    if i == 3
+        tmp = tmp_blue;
+    else
+        tmp = 'k';
+    end
+
+    plot( a, y_arr_dis( 1, : ), y_arr_dis( 2, : ), 'linewidth', lw( i ), 'color', tmp )
+end
+axis equal
+
 %%  -- (2B) For Rhythmic Movement
 
 
