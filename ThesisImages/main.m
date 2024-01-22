@@ -227,11 +227,11 @@ hold on;
 plot( a, y_arr_dis( 1, : ), y_arr_dis( 2, : ), 'linewidth', 8 )
 scatter( a, y_arr_dis( 1, 1   ), y_arr_dis( 2, 1   ), 500, 'filled', 'o','markerfacecolor', [ 1,1,1], 'markeredgecolor', [0,0,0], 'linewidth', 5 )
 scatter( a, y_arr_dis( 1, end ), y_arr_dis( 2, end ), 500, 'filled', 'd', 'markerfacecolor', [ 1,1,1], 'markeredgecolor', [0,0,0], 'linewidth', 5 )
-set( a, 'fontsize', 30, 'xlim', [-1,11], 'ylim', [-1,8], 'ytick', 0:2:8, 'xtick', 0:2:10 )
 axis equal
+set( a, 'fontsize', 30, 'xlim', [-2,11], 'ylim', [-1,8], 'ytick', 0:2:8, 'xtick', 0:2:10 )
 xlabel( 'X (m)', 'fontsize', 35 )
 ylabel( 'Y (m)', 'fontsize', 35 )
-% fig_save( f, 'ThesisImages/images/task_space_position_imit1' )
+fig_save( f, 'ThesisImages/images/task_space_position_imit1' )
 
 
 % Scale the trajectory 
@@ -263,7 +263,7 @@ set( a, 'fontsize', 30, 'xlim', [-2,20], 'ylim', [-2, 16], 'ytick', 0:5:15, 'xti
 set( a, 'xticklabel', {}, 'yticklabel', {}, 'zticklabel', {} )
 % xlabel( 'X (m)', 'fontsize', 35 )
 % ylabel( 'Y (m)', 'fontsize', 35 )
-% fig_save( f, 'ThesisImages/images/task_space_position_imit2' )
+fig_save( f, 'ThesisImages/images/task_space_position_imit2' )
 
 % Rotate the trajectory
 ang_arr = 0:60:359;
@@ -290,7 +290,7 @@ for ang = ang_arr
    
 end
 
-set( a, 'view', [31.7014, 8.9169], 'fontsize',30 )
+set( a, 'view', [31.7014, 8.9169], 'fontsize',30, 'xlim', [-2, 12], 'ylim', [-8, 8], 'zlim', [-8, 8] )
 set( a, 'xticklabel', {}, 'yticklabel', {}, 'zticklabel', {} )
 % xlabel( a, 'X (m)' );
 % ylabel( a, 'Y (m)' );
