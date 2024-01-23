@@ -6,6 +6,7 @@
 %% (--) Initialization
 clear; close all; clc;
 fig_config( 'fontSize', 20, 'markerSize', 10 )
+c_blue = [0, 0.4470, 0.7410];
 
 %% =======================================================
 %% (1-) Imitation Learning for Joint-space, Section 4.4.1
@@ -199,6 +200,10 @@ fig_save( f, 'ThesisImages/images/joint_space_imit_learn' )
 
 % Load the M data
 data = load( 'learned_parameters/M2.mat' ); data = data.data;
+data_ref = load( 'alphabets/M2.mat' ); 
+
+x_real = data_ref.data.p_data( 1, : ) - data_ref.data.p_data( 1, 1 );
+y_real = data_ref.data.p_data( 2, : ) - data_ref.data.p_data( 2, 1 );
 
 N = size( data.weight, 2 );
 W = data.weight;
@@ -224,14 +229,18 @@ input_arr = fs.calc_forcing_term( t_arr_dis( 1:end-1 ), W, t0i, eye( 3 ) );
 
 f = figure( ); a = axes( 'parent', f );
 hold on; 
-plot( a, y_arr_dis( 1, : ), y_arr_dis( 2, : ), 'linewidth', 8 )
+plot( a, y_arr_dis( 1, : ), y_arr_dis( 2, : ), 'linewidth', 5, 'color', c_blue )
+plot( a, x_real, y_real, 'linewidth', 8, 'linestyle', '--', 'color', 'k' )
+
+
 scatter( a, y_arr_dis( 1, 1   ), y_arr_dis( 2, 1   ), 500, 'filled', 'o','markerfacecolor', [ 1,1,1], 'markeredgecolor', [0,0,0], 'linewidth', 5 )
 scatter( a, y_arr_dis( 1, end ), y_arr_dis( 2, end ), 500, 'filled', 'd', 'markerfacecolor', [ 1,1,1], 'markeredgecolor', [0,0,0], 'linewidth', 5 )
 axis equal
 set( a, 'fontsize', 30, 'xlim', [-2,11], 'ylim', [-1,8], 'ytick', 0:2:8, 'xtick', 0:2:10 )
-xlabel( 'X (m)', 'fontsize', 35 )
-ylabel( 'Y (m)', 'fontsize', 35 )
-fig_save( f, 'ThesisImages/images/task_space_position_imit1' )
+xlabel( a, 'X (m)', 'fontsize', 35 )
+ylabel( a, 'Y (m)', 'fontsize', 35 )
+title( a, 'Discrete', 'fontsize', 45 )
+fig_save( f, 'ThesisImages/images/task_space_position_discrete' )
 
 
 % Scale the trajectory 
@@ -261,9 +270,9 @@ for i = 1 : length( scl )
 end
 set( a, 'fontsize', 30, 'xlim', [-2,20], 'ylim', [-2, 16], 'ytick', 0:5:15, 'xtick', 0:5:20 )
 set( a, 'xticklabel', {}, 'yticklabel', {}, 'zticklabel', {} )
-% xlabel( 'X (m)', 'fontsize', 35 )
-% ylabel( 'Y (m)', 'fontsize', 35 )
-fig_save( f, 'ThesisImages/images/task_space_position_imit2' )
+xlabel( 'X (m)', 'fontsize', 45 )
+ylabel( 'Y (m)', 'fontsize', 45 )
+fig_save( f, 'ThesisImages/images/task_space_position_scale' )
 
 % Rotate the trajectory
 ang_arr = 0:60:359;
@@ -284,19 +293,19 @@ for ang = ang_arr
 
     [ y_tmp, ~, ~ ] = trans_sys.rollout( zeros( 3, 1 ), R * data.z0 * data.tau, R*data.goal, R*input_arr, t0i, t_arr_dis  );
         
-    plot3( a, y_tmp( 1, : ), y_tmp( 3, : ), y_tmp( 2, : ), 'linewidth', lw, 'color', lc )
-    scatter3( a, y_tmp( 1, 1   ), y_tmp( 3, 1   ), y_tmp( 2, 1 ), 500, 'filled', 'o','markerfacecolor', [ 1,1,1], 'markeredgecolor', [0,0,0], 'linewidth', 5 )
-    scatter3( a, y_tmp( 1, end ), y_tmp( 3, end ), y_tmp( 2, end ), 500, 'filled', 'd', 'markerfacecolor', [ 1,1,1], 'markeredgecolor', [0,0,0], 'linewidth', 5 )    
+    plot3( a, y_tmp( 1, : ), y_tmp( 2, : ), y_tmp( 3, : ), 'linewidth', lw, 'color', lc )
+    scatter3( a, y_tmp( 1, 1   ), y_tmp( 2, 1   ), y_tmp( 3, 1 ), 500, 'filled', 'o','markerfacecolor', [ 1,1,1], 'markeredgecolor', [0,0,0], 'linewidth', 5 )
+    scatter3( a, y_tmp( 1, end ), y_tmp( 2, end ), y_tmp( 3, end ), 500, 'filled', 'd', 'markerfacecolor', [ 1,1,1], 'markeredgecolor', [0,0,0], 'linewidth', 5 )    
    
 end
 
 set( a, 'view', [31.7014, 8.9169], 'fontsize',30, 'xlim', [-2, 12], 'ylim', [-8, 8], 'zlim', [-8, 8] )
 set( a, 'xticklabel', {}, 'yticklabel', {}, 'zticklabel', {} )
-% xlabel( a, 'X (m)' );
-% ylabel( a, 'Y (m)' );
-% zlabel( a, 'Z (m)' );
+xlabel( a, 'X (m)', 'fontsize', 45 );
+ylabel( a, 'Y (m)', 'fontsize', 45 );
+zlabel( a, 'Z (m)', 'fontsize', 45 );
 
-fig_save( f, 'ThesisImages/images/task_space_position_imit3' )
+fig_save( f, 'ThesisImages/images/task_space_position_rot' )
 
 %%  -- (2B) For Rhythmic Movement
 
@@ -321,9 +330,9 @@ ddx = matlabFunction( ddx ); ddy = matlabFunction( ddy );
 P = 100;
 t_P = linspace( 0, 2*pi, P );
 
-  x_data =   x( t_arr );   y_data =   y( t_arr );
- dx_data =  dx( t_arr );  dy_data =  dy( t_arr );
-ddx_data = ddx( t_arr ); ddy_data = ddy( t_arr );
+  x_data =   x( t_P );   y_data =   y( t_P );
+ dx_data =  dx( t_P );  dy_data =  dy( t_P );
+ddx_data = ddx( t_P ); ddy_data = ddy( t_P );
 
 % Collecting the data as p_des
   p_des = [   x_data;   y_data ];
@@ -349,7 +358,7 @@ fs        = NonlinearForcingTerm( cs, N );
 
 % Calculating the required Nonlinear Forcing Term
 % Goal location is zero 
-B = trans_sys.get_desired( p_des, dp_des, ddp_des, mean( p_des ) );
+B = trans_sys.get_desired( p_des, dp_des, ddp_des, mean( p_des,2 ) );
 
 % The A matrix 
 A = zeros( N, P );
@@ -362,3 +371,28 @@ end
 
 % Linear Least-square
 W = B * A' * ( A * A' )^-1;
+
+% Rollout with the weight array 
+t0i   = 0.0;
+T     = tau*9;
+Nt    = 3000;
+t_arr_dis = linspace( 0, T, Nt+1 );
+
+scl = 1.0;
+input_arr = fs.calc_forcing_term( t_arr_dis( 1:end-1 ), scl*W, t0i, eye( 2 ) );
+[ y_arr_dis, ~, ~ ] = trans_sys.rollout( scl*p_des( :, 1 ), dp_des( :, 1 )*tau, scl*mean( p_des,2 ), input_arr, t0i, t_arr_dis  );
+
+f = figure( ); a = axes( 'parent', f );
+hold on; 
+plot( a, y_arr_dis( 1, : ), y_arr_dis( 2, : ), 'linewidth', 5, 'color', c_blue )
+plot( a, x_data, y_data, 'linewidth', 8, 'color', 'k', 'linestyle', '--' );
+scatter( a, y_arr_dis( 1, 1   ), y_arr_dis( 2, 1   ), 500, 'filled', 'o','markerfacecolor', [ 1,1,1], 'markeredgecolor', [0,0,0], 'linewidth', 5 )
+
+axis equal
+set( a, 'fontsize', 30, 'xlim', [-20,20], 'ylim', [-20,15] )
+xlabel( a, 'X (m)', 'fontsize', 35 )
+ylabel( a, 'Y (m)', 'fontsize', 35 )
+title( a, 'Rhythmic', 'fontsize', 45 )
+
+fig_save( f, 'ThesisImages/images/task_space_position_rhythmic' )
+
