@@ -93,24 +93,31 @@ set( a, 'fontsize', 25, 'xtick', 0.0:0.5:1.5, 'ylim', [ qid(2)-0.2, qgd(2)+0.2 ]
 xlabel( a, 'Time (sec)', 'fontsize', 35 )
 ylabel( a, 'Joint 2 (rad)', 'fontsize', 35 )
 
-%%  -- (1Aa) For Discrete Movement, temporal variance
+%%  -- (1Aa) For Discrete Movement, temporal and scaling variance
 
 f = figure( ); 
 a1 = subplot( 2, 2, 1 );
 hold on 
 
 a2 = subplot( 2, 2, 3 );
+set( a1, 'fontsize', 30, 'xtick', 0:2, 'ylim', [0., 1.5] )
+set( a2, 'fontsize', 30, 'xtick', 0:2, 'ylim', [0., 1.5] )
+xlabel( a2, '$t$ (s)', 'fontsize', 30 )
 hold on 
 
-tau_arr = [ 0.5, 1.0, 1.5 ] * D;
+tau_arr = [ 1.0, 0.5, 1.5 ] * D;
 
 N = length( tau_arr );
 
 % Rollout with the weight array 
 t0i   = 0.0;
-T     = 1.0;
+T     = 2*1.0;
 Nt    = 3000;
 t_arr_dis = linspace( 0, T, Nt+1 );
+
+lw_arr = [ 8, 5, 5 ];
+lsty_arr = {'-', '-', '-'};
+c_arr = [ c_blue; 0.8500 0.3250 0.0980; 0.9290 0.6940 0.1250];
 
 for i = 1 : N
     tau = tau_arr( i ) ;
@@ -119,39 +126,56 @@ for i = 1 : N
     qi = qid;
     qg = qgd;
 
+    lw   = lw_arr( i );
+    lsty = lsty_arr{ i };
+
     cs.tau = tau;
     input_arr = fs.calc_forcing_term( t_arr_dis( 1:end-1 ), W, t0i, diag( qg - qi ) );
     [ y_arr_dis, ~, ~ ] = trans_sys.rollout( qi, zeros( n, 1 ), qg, input_arr, t0i, t_arr_dis  );
     
-    plot( a1, t_arr_dis, y_arr_dis( 1, : ) )
-    plot( a2, t_arr_dis, y_arr_dis( 2, : ) )
+    plot( a1, t_arr_dis, y_arr_dis( 1, : ), 'linewidth', lw, 'linestyle', lsty, 'color', c_arr( i, : ), 'DisplayName', ['$\tau=$', num2str( tau, '%.1f' ) ] )
+    plot( a2, t_arr_dis, y_arr_dis( 2, : ), 'linewidth', lw, 'linestyle', lsty, 'color', c_arr( i, : ) )
 end
-title( a1, 'Temporal Scaling' );
+title( a1, 'Temporal Scaling', 'fontsize', 45 );
 cs.tau = D;
-
+legend( a1, 'location', 'southeast' )
 a3 = subplot( 2, 2, 2 );
-title( a3, 'Spatial Scaling' );
+title( a3, 'Spatial Scaling', 'fontsize', 45 );
 hold on
 
 a4 = subplot( 2, 2, 4 );
 hold on 
+xlabel( a4, '$t$ (s)', 'fontsize', 30 )
 
-scl_arr = [ 0.5, 1.0, 1.5 ];
+qg_arr = [ 1.0, 1.0; 0.8, 1.2; 0.9, 1.4 ];
 
 for i = 1 : N
-    tau = tau_arr( i );
-    scl = scl_arr( i );
+    qg  = qg_arr( i, : )';
     % Same goal and initial condition
     qi = qid;
-    qg = scl * qgd;
 
     input_arr = fs.calc_forcing_term( t_arr_dis( 1:end-1 ), W, t0i, diag( qg - qi ) );
     [ y_arr_dis, ~, ~ ] = trans_sys.rollout( qi, zeros( n, 1 ), qg, input_arr, t0i, t_arr_dis  );
     
-    plot( a3, t_arr_dis, y_arr_dis( 1, : ) )
-    plot( a4, t_arr_dis, y_arr_dis( 2, : ) )
+    lw   = lw_arr( i );
+    lsty = lsty_arr{ i };
+    
+    plot( a3, t_arr_dis, y_arr_dis( 1, : ), 'linewidth', lw, 'linestyle', lsty, 'color', c_arr( i, : ), 'DisplayName', [ '$q_{g,1}=', num2str( qg( 1 ), '%.1f' ), '$' ] )
+    plot( a4, t_arr_dis, y_arr_dis( 2, : ), 'linewidth', lw, 'linestyle', lsty, 'color', c_arr( i, : ), 'DisplayName', [ '$q_{g,2}=', num2str( qg( 2 ), '%.1f' ), '$' ] )
 end
 
+legend( a3, 'location', 'southeast' )
+legend( a4, 'location', 'southeast' )
+
+
+set( a1, 'xlim', [ 0, 2 ], 'ylim', [0.0, 1.5], 'fontsize', 30, 'xtick', 0:2 )
+set( a2, 'xlim', [ 0, 2 ], 'ylim', [0.0, 1.5], 'fontsize', 30, 'xtick', 0:2 )
+set( a3, 'xlim', [ 0, 2 ], 'ylim', [0.0, 1.5], 'fontsize', 30, 'xtick', 0:2 )
+set( a4, 'xlim', [ 0, 2 ], 'ylim', [0.0, 1.5], 'fontsize', 30, 'xtick', 0:2 )
+ylabel( a1, 'Joint 1 (rad)', 'fontsize', 30 )
+ylabel( a2, 'Joint 2 (rad)', 'fontsize', 30 )
+
+fig_save( f, 'ThesisImages/images/joint_space_imit_learn_temp_scl' )
 
 
 %%  -- (1B) For Rhythmic Movement
@@ -202,10 +226,8 @@ T  = Tp*2;
 Nt = 5000;
 t_arr_rhy = linspace( 0, T, Nt+1 );
 
-scl = 2.0;
-
-input_arr = scl * fs.calc_forcing_term( t_arr_rhy( 1:end-1 ), W, 0, eye( 2 ) );
-[ y_arr_rhy, ~, dy_arr_dis ] = trans_sys.rollout( scl*q_des( :, 1 ), zeros( 2, 1), zeros( 2, 1 ), input_arr, 0, t_arr_rhy  );
+input_arr = fs.calc_forcing_term( t_arr_rhy( 1:end-1 ), W, 0, eye( 2 ) );
+[ y_arr_rhy, ~, ~ ] = trans_sys.rollout( q_des( :, 1 ), zeros( 2, 1), zeros( 2, 1 ), input_arr, 0, t_arr_rhy  );
 
 f = figure( );
 a = subplot( 2, 1, 1 );
@@ -224,6 +246,76 @@ plot( t_arr_rhy, r0 * sin( w*t_arr_rhy ), 'linewidth', 8, 'color', 'k', 'linesty
 set( a, 'fontsize', 25, 'ylim', [-r0-0.1, r0+0.1] );
 xlabel( a, 'Time (sec)', 'fontsize', 35 )
 ylabel( a, 'Joint 2 (rad)', 'fontsize', 35 )
+
+%%  -- (1Ba) For Rhythmic Movement, temporal and scaling variance
+
+% Create a subplot for 2 column
+f = figure( ); 
+a1 = subplot( 2, 2, 1 ); hold on
+a2 = subplot( 2, 2, 2 ); hold on
+a3 = subplot( 2, 2, 3 ); hold on
+a4 = subplot( 2, 2, 4 ); hold on
+
+% The first/second columns are Temporal/Spatial Scaling
+title( a1, 'Temporal Scaling', 'fontsize', 45 );
+title( a2, 'Spatial Scaling', 'fontsize', 45 );
+
+% For the whole rollout
+N = length( scl_arr );
+Tp = 2.0;
+T  = Tp*2;
+Nt = 5000;
+t_arr_rhy = linspace( 0, T, Nt+1 );
+
+% Iterate over the temporal scaling
+Tp_arr = [ 2.0, 4.0, 1.0 ];
+tau_arr = Tp_arr/(2*pi);
+
+
+lw_arr = [ 8, 5, 5 ];
+lsty_arr = {'-', '-', '-'};
+c_arr = [ c_blue; 0.8500 0.3250 0.0980; 0.9290 0.6940 0.1250];
+
+for i = 1 : N
+    cs.tau = tau_arr( i );
+
+    lw   = lw_arr( i );
+    lsty = lsty_arr{ i };
+
+    input_arr = fs.calc_forcing_term( t_arr_rhy( 1:end-1 ), W, 0, scl*eye( 2 ) );
+    [ y_arr_rhy, ~, ~ ] = trans_sys.rollout( scl*q_des( :, 1 ), zeros( 2, 1), zeros( 2, 1 ), input_arr, 0, t_arr_rhy  );
+    plot( a1, t_arr_rhy, y_arr_rhy( 1, : ), 'linewidth', lw, 'color', c_arr( i, : ), 'linestyle', lsty );
+    plot( a3, t_arr_rhy, y_arr_rhy( 2, : ), 'linewidth', lw, 'color', c_arr( i, : ), 'linestyle', lsty );
+end
+
+% We try multiple scaling too 
+scl_arr = [ 1.0 , 0.5, 1.5 ];
+for i = 1 : N
+    lw   = lw_arr( i );
+    lsty = lsty_arr{ i };
+    scl = scl_arr( i );
+
+    input_arr = fs.calc_forcing_term( t_arr_rhy( 1:end-1 ), W, 0, scl*eye( 2 ) );
+    tmp{ i } = input_arr;
+    [ y_arr_rhy, ~, ~ ] = trans_sys.rollout( scl*q_des( :, 1 ), zeros( 2, 1), zeros( 2, 1 ), input_arr, 0, t_arr_rhy  );
+    plot( a2, t_arr_rhy, y_arr_rhy( 1, : ), 'linewidth', lw, 'color', c_arr( i, : ), 'linestyle', lsty );
+    plot( a4, t_arr_rhy, y_arr_rhy( 2, : ), 'linewidth', lw, 'color', c_arr( i, : ), 'linestyle', lsty );
+
+end
+
+ylabel( a1, 'Joint 1 (rad)', 'fontsize', 30 )
+ylabel( a3, 'Joint 2 (rad)', 'fontsize', 30 )
+
+xlabel( a3, '$t$ (s)', 'fontsize', 30 )
+xlabel( a4, '$t$ (s)', 'fontsize', 30 )
+
+
+set( a1, 'xlim', [ 0, 4 ], 'ylim', [-1.0, 1.0], 'fontsize', 30, 'xtick', 0:2:4 )
+set( a2, 'xlim', [ 0, 4 ], 'ylim', [-1.0, 1.0], 'fontsize', 30, 'xtick', 0:2:4 )
+set( a3, 'xlim', [ 0, 4 ], 'ylim', [-1.0, 1.0], 'fontsize', 30, 'xtick', 0:2:4 )
+set( a4, 'xlim', [ 0, 4 ], 'ylim', [-1.0, 1.0], 'fontsize', 30, 'xtick', 0:2:4 )
+
+fig_save( f, 'ThesisImages/images/joint_space_imit_learn_rhy_temp_scl' )
 
 %%  -- (1C) For Both Discrete and Rhythmic Movement
 

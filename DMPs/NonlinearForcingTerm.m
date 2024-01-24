@@ -293,7 +293,7 @@ classdef NonlinearForcingTerm < handle
                 t_tmp = t_arr( idx_arr ) - t0i;
                 force_arr( :, idx_arr ) = scl * ( obj.cs.calc( t_tmp ) .* obj.calc_whole_weighted_at_t( t_tmp, w_arr ) );
             else
-                force_arr = obj.calc_whole_weighted_at_t( t_arr, w_arr );
+                force_arr = scl * obj.calc_whole_weighted_at_t( t_arr, w_arr );
             end
 
         end
