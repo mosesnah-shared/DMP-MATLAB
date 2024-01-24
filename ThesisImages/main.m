@@ -12,7 +12,7 @@ c_blue = [0, 0.4470, 0.7410];
 %% (1-) Imitation Learning for Joint-space, Section 4.4.1
 %%  -- (1A) For Discrete Movement
 
-% Generating Minimum-jerk trajectory
+% For demonstration, Generating Minimum-jerk trajectory
 qid = [ 0.0; 0.0 ];         % Initial Posture, Demonstrated
 qgd = [ 1.0; 1.0 ];         %   Final Posture, Demonstrated 
 D   = 1.0;                  % Duration
@@ -55,10 +55,10 @@ for i = 1 : P
 end
 
 % Scaling matrix, classical DMP
-scl = diag( qgd - qid );
+scl_mat = diag( qgd - qid );
 
 % Linear Least-square
-W = B * A' * ( A * A' )^-1;
+W = inv( scl_mat ) * B * A' * ( A * A' )^-1;
 
 % Rollout with the weight array 
 t0i   = 0.0;
@@ -68,9 +68,12 @@ t_arr_dis = linspace( 0, T, Nt+1 );
 
 [ q_des_plot , ~, ~] = min_jerk_traj( qid, qgd, D, t_arr_dis, t0i );
 
-input_arr = fs.calc_forcing_term( t_arr_dis( 1:end-1 ), W, t0i, diag( qgd - qid ) );
+% The new initial condition
+qi = qid;
+qg = qgd;
 
-[ y_arr_dis, ~, ~ ] = trans_sys.rollout( q_des( :, 1 ), dq_des( :, 1 ), q_des( :, end ), input_arr, t0i, t_arr_dis  );
+input_arr = fs.calc_forcing_term( t_arr_dis( 1:end-1 ), W, t0i, diag( qg - qi ) );
+[ y_arr_dis, ~, ~ ] = trans_sys.rollout( qi, zeros( n, 1 ), qg, input_arr, t0i, t_arr_dis  );
 
 f = figure( );
 a = subplot( 2, 1, 1 );
@@ -90,6 +93,67 @@ set( a, 'fontsize', 25, 'xtick', 0.0:0.5:1.5, 'ylim', [ qid(2)-0.2, qgd(2)+0.2 ]
 xlabel( a, 'Time (sec)', 'fontsize', 35 )
 ylabel( a, 'Joint 2 (rad)', 'fontsize', 35 )
 
+%%  -- (1Aa) For Discrete Movement, temporal variance
+
+f = figure( ); 
+a1 = subplot( 2, 2, 1 );
+hold on 
+
+a2 = subplot( 2, 2, 3 );
+hold on 
+
+tau_arr = [ 0.5, 1.0, 1.5 ] * D;
+
+N = length( tau_arr );
+
+% Rollout with the weight array 
+t0i   = 0.0;
+T     = 1.0;
+Nt    = 3000;
+t_arr_dis = linspace( 0, T, Nt+1 );
+
+for i = 1 : N
+    tau = tau_arr( i ) ;
+   
+    % Same goal and initial condition
+    qi = qid;
+    qg = qgd;
+
+    cs.tau = tau;
+    input_arr = fs.calc_forcing_term( t_arr_dis( 1:end-1 ), W, t0i, diag( qg - qi ) );
+    [ y_arr_dis, ~, ~ ] = trans_sys.rollout( qi, zeros( n, 1 ), qg, input_arr, t0i, t_arr_dis  );
+    
+    plot( a1, t_arr_dis, y_arr_dis( 1, : ) )
+    plot( a2, t_arr_dis, y_arr_dis( 2, : ) )
+end
+title( a1, 'Temporal Scaling' );
+cs.tau = D;
+
+a3 = subplot( 2, 2, 2 );
+title( a3, 'Spatial Scaling' );
+hold on
+
+a4 = subplot( 2, 2, 4 );
+hold on 
+
+scl_arr = [ 0.5, 1.0, 1.5 ];
+
+for i = 1 : N
+    tau = tau_arr( i );
+    scl = scl_arr( i );
+    % Same goal and initial condition
+    qi = qid;
+    qg = scl * qgd;
+
+    input_arr = fs.calc_forcing_term( t_arr_dis( 1:end-1 ), W, t0i, diag( qg - qi ) );
+    [ y_arr_dis, ~, ~ ] = trans_sys.rollout( qi, zeros( n, 1 ), qg, input_arr, t0i, t_arr_dis  );
+    
+    plot( a3, t_arr_dis, y_arr_dis( 1, : ) )
+    plot( a4, t_arr_dis, y_arr_dis( 2, : ) )
+end
+
+
+
 %%  -- (1B) For Rhythmic Movement
 
 % Generating rhythmic movement, cosine and sine
@@ -97,14 +161,15 @@ r0  = 0.5;
 Tp  = 2.0;
 tau = Tp/(2*pi);
 w   = 1/tau;        % Angular velocity of cosine/sin
+r   = 1.0;
 
 % The number of Basis Function for the Nonlinear Forcing Term
 % The algorithm is sensitive to the choice of N!! Care is required.
 N = 25;
 
 % Parameters of the Transformation System
-alpha_z   = 50.0;
-beta_z    = 0.25 * alpha_z;
+alpha_z = 50.0;
+beta_z  = 0.25 * alpha_z;
 
 P   = 100;
 t_P = linspace( 0, Tp, P );
@@ -119,7 +184,7 @@ fs        = NonlinearForcingTerm( cs, N );
 
 % Calculating the required Nonlinear Forcing Term
 % Goal location is zero 
-B = trans_sys.get_desired( q_des, dq_des, ddq_des, zeros( 2, 1 ) );
+B = trans_sys.get_desired( q_des, dq_des, ddq_des, mean( q_des, 2 ) );
 
 % The A matrix 
 A = zeros( N, P );
@@ -127,7 +192,7 @@ A = zeros( N, P );
 % Interating along the sample points
 for i = 1:P 
     t = t_P( i );
-    A( :, i ) = fs.calc_multiple_ith( t, 1:N )/ fs.calc_whole_at_t( t );
+    A( :, i ) = r * fs.calc_multiple_ith( t, 1:N )/ fs.calc_whole_at_t( t );
 end
 
 % Linear Least-square
@@ -137,8 +202,10 @@ T  = Tp*2;
 Nt = 5000;
 t_arr_rhy = linspace( 0, T, Nt+1 );
 
-input_arr = fs.calc_forcing_term( t_arr_rhy( 1:end-1 ), W, 0, eye( 2 ) );
-[ y_arr_rhy, ~, dy_arr_dis ] = trans_sys.rollout( q_des( :, 1 ), tau*dq_des( :, 1 ), zeros( 2, 1 ), input_arr, 0, t_arr_rhy  );
+scl = 2.0;
+
+input_arr = scl * fs.calc_forcing_term( t_arr_rhy( 1:end-1 ), W, 0, eye( 2 ) );
+[ y_arr_rhy, ~, dy_arr_dis ] = trans_sys.rollout( scl*q_des( :, 1 ), zeros( 2, 1), zeros( 2, 1 ), input_arr, 0, t_arr_rhy  );
 
 f = figure( );
 a = subplot( 2, 1, 1 );
@@ -396,3 +463,127 @@ title( a, 'Rhythmic', 'fontsize', 45 )
 
 fig_save( f, 'ThesisImages/images/task_space_position_rhythmic' )
 
+%% =======================================================
+%% (2-) Imitation Learning for Task-space, Orientation, Section 4.4.3
+%%  -- (2A) For Discrete Movement
+
+% Generate an example orientation trajectory 
+Ri = eye( 3 );
+Rg = rotx( 30 ) * roty( 20 ) * rotz( 50 );
+
+% Get the axis (or diff between two SO3 matrices)
+w = LogSO3( Ri' * Rg );
+theta = norm( w );
+w_hat = w/theta;
+
+% We use the symbolic form to get the angular velocity 
+syms t positive
+
+% Get the symbolic form for the trajectory
+D = 3.0;
+traj = 10*(t/D)^3 - 15*(t/D)^4 + 6*(t/D)^5;
+R_sym = Ri * ( eye( 3 ) + sin( theta*traj ) * w_hat + (1 - cos( theta*traj ) ) * w_hat^2 ); 
+
+% Also get the angular velocity in symbolic form
+ang_vel_sym = diff( R_sym, t ) * R_sym.';
+
+% Change these to MATLAB_functions
+R_func = matlabFunction( R_sym );
+ang_vel_func = matlabFunction( ang_vel_sym );
+
+% Regenerate the trajectories 
+P = 500;
+t_des = linspace( 0, D, P );
+
+R_des   = zeros( 3, 3, P );
+ang_des = zeros( 3, 3, P );
+
+for i = 1 : P
+   t = t_des( i ); 
+   R_des(   :, :, i ) = R_func( t );
+   ang_des( :, :, i ) = ang_vel_func( t );
+end
+
+% Calculate the error vector and its derivative
+  err = zeros( 3, P );
+ derr = zeros( 3, P );
+dderr = zeros( 3, P );
+
+for i = 1 : P
+    R   = R_des( :, :, i );
+    ang = ang_des( :, :, i );
+    R0g = R' * Rg;
+   err( :, i ) = so3_to_R3( LogSO3( R0g ) );
+   
+   dR = -R' * ang * Rg;
+    
+   % Get theta
+   th = norm( LogSO3( R0g ) );
+   
+   if th >= 1e-7
+        tmp1 = ( ( th * cos( th ) - sin( th ) ) / ( 4 * sin( th )^3 ) ) * trace( dR ) * ( R0g - R0g' );
+        tmp2 = -th/( 2 * sin( th ) ) * ( dR - dR' );
+   else
+      tmp1 = zeros( 3, 3 );
+      tmp2 = zeros( 3, 3 );
+   end
+   
+   derr( :, i ) = so3_to_R3( tmp1 + tmp2 );
+   
+end
+
+% For dderr, do numerical differentiation
+for i = 1 : 3
+    dderr( i, : ) =  data_diff( derr( i, : ) );
+    dderr( i, : ) = smoothdata( dderr( i, : ), "gaussian", 50 );
+end
+
+
+% Parameters of the Transformation System
+tau       = D;
+alpha_s   = 1.0;
+alpha_z   = 500.0;
+beta_z    = 0.25 * alpha_z;
+N         = 30;
+
+% DMP, three primitives
+cs        = CanonicalSystem( 'discrete', tau, alpha_s );
+trans_sys = TransformationSystem( alpha_z, beta_z, cs );
+fs        = NonlinearForcingTerm( cs, N );
+
+% Scaling vector 
+Se = diag( so3_to_R3( LogSO3( Ri' * Rg ) ) );
+
+% Calculating the required Nonlinear Forcing Term
+B = inv( Se ) * trans_sys.get_desired( err, derr, dderr, zeros( 3, 1 ) );
+
+
+% The A matrix 
+A = zeros( N, P );
+
+% Interating along the sample points
+for i = 1:P 
+    t = t_des( i );
+    A( :, i ) = fs.calc_multiple_ith( t, 1:N )/ fs.calc_whole_at_t( t ) * cs.calc( t );
+end
+
+% Linear Least-square
+W = B * A' * ( A * A' )^-1;
+
+% Rollout with the weight array 
+t0i   = 0.0;
+T     = D*2;
+Nt    = 3000;
+t_arr_dis = linspace( 0, T, Nt+1 );
+
+
+% Scaling vector 
+Se2 = diag( so3_to_R3( LogSO3( Ri' * Rg ) ) );
+
+input_arr = fs.calc_forcing_term( t_arr_dis( 1:end-1 ), W, t0i, Se2 );
+[ err_roll, ~, ~ ] = trans_sys.rollout( err( :, 1 ), derr( :, 1 )*tau, zeros( 3, 1 ), input_arr, t0i, t_arr_dis  );
+
+f= figure(); a = axes( 'parent', f);
+hold on
+plot( a, t_arr_dis, err_roll,'linewidth', 5, 'color', c_blue )
+plot( a, t_des, err,'linewidth', 8, 'color', 'k', 'linestyle', '--' )
