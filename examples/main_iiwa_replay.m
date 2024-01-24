@@ -12,7 +12,7 @@ fig_config( 'fontSize', 20, 'markerSize', 10 )
 %%  -- (1A) Call the Data
 
 % Datasets are saved under data folder
-file_name = './data/example1/iiwa_example1';
+file_name = './data/example6/test2';
 raw_data  = parse_txt( [ file_name, '.txt' ], 0 );
 
 % Time array, joint-trajectories, and p0 values
@@ -29,7 +29,7 @@ q_arr  = raw_data( :, 2:8 )';
 robot = iiwa14( 'high' );
 robot.init( );
 
-anim = Animation( 'Dimension', 3, 'xLim', [-0.1,1.1], 'yLim', [-0.7,0.5], 'zLim', [0,1.2], 'isSaveVideo', true );
+anim = Animation( 'Dimension', 3, 'xLim', [-0.1,1.1], 'yLim', [-0.7,0.5], 'zLim', [0,1.2], 'isSaveVideo', false );
 anim.init( );
 anim.attachRobot( robot )  
     
