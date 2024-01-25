@@ -556,8 +556,8 @@ title( a, 'Rhythmic', 'fontsize', 45 )
 fig_save( f, 'ThesisImages/images/task_space_position_rhythmic' )
 
 %% =======================================================
-%% (2-) Imitation Learning for Task-space, Orientation, Section 4.4.3
-%%  -- (2A) For Discrete Movement
+%% (3-) Imitation Learning for Task-space, Orientation, Section 4.4.3
+%%  -- (3A) For Discrete Movement
 
 % Generate an example orientation trajectory 
 % This is a demonstrated trajectory
@@ -736,7 +736,7 @@ for i = 1 : N
 
 end
 
-%%  -- (2B) For Rhythmic Movement
+%%  -- (3B) For Rhythmic Movement
 
 % We use the symbolic form to generate the trajectory
 syms t positive
