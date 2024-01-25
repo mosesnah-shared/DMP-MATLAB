@@ -556,8 +556,8 @@ title( a, 'Rhythmic', 'fontsize', 45 )
 fig_save( f, 'ThesisImages/images/task_space_position_rhythmic' )
 
 %% =======================================================
-%% (2-) Imitation Learning for Task-space, Orientation, Section 4.4.3
-%%  -- (2A) For Discrete Movement
+%% (3-) Imitation Learning for Task-space, Orientation, Section 4.4.3
+%%  -- (3A) For Discrete Movement
 
 % Generate an example orientation trajectory 
 % This is a demonstrated trajectory
@@ -749,7 +749,9 @@ set( a2, 'view', [ 0, 0 ], 'xticklabel', {}, 'yticklabel', {}, 'zticklabel', {},
 title( 'Discrete', 'fontsize', 45 )
 fig_save( f, 'ThesisImages/images/task_space_orient_discrete' )
 
-%%  -- (2B) For Rhythmic Movement
+%% =======================================================
+%%  -- (3B) For Rhythmic Movement
+
 
 % We provide a dummy periodical orientation
 % The period is simply 2
