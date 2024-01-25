@@ -261,7 +261,6 @@ title( a1, 'Temporal Scaling', 'fontsize', 45 );
 title( a2, 'Spatial Scaling', 'fontsize', 45 );
 
 % For the whole rollout
-N = length( scl_arr );
 Tp = 2.0;
 T  = Tp*2;
 Nt = 5000;
@@ -269,6 +268,8 @@ t_arr_rhy = linspace( 0, T, Nt+1 );
 
 % Iterate over the temporal scaling
 Tp_arr = [ 2.0, 4.0, 1.0 ];
+N = length( Tp_arr );
+
 tau_arr = Tp_arr/(2*pi);
 
 
@@ -282,8 +283,8 @@ for i = 1 : N
     lw   = lw_arr( i );
     lsty = lsty_arr{ i };
 
-    input_arr = fs.calc_forcing_term( t_arr_rhy( 1:end-1 ), W, 0, scl*eye( 2 ) );
-    [ y_arr_rhy, ~, ~ ] = trans_sys.rollout( scl*q_des( :, 1 ), zeros( 2, 1), zeros( 2, 1 ), input_arr, 0, t_arr_rhy  );
+    input_arr = fs.calc_forcing_term( t_arr_rhy( 1:end-1 ), W, 0, eye( 2 ) );
+    [ y_arr_rhy, ~, ~ ] = trans_sys.rollout( q_des( :, 1 ), zeros( 2, 1), zeros( 2, 1 ), input_arr, 0, t_arr_rhy  );
     plot( a1, t_arr_rhy, y_arr_rhy( 1, : ), 'linewidth', lw, 'color', c_arr( i, : ), 'linestyle', lsty );
     plot( a3, t_arr_rhy, y_arr_rhy( 2, : ), 'linewidth', lw, 'color', c_arr( i, : ), 'linestyle', lsty );
 end
@@ -296,7 +297,6 @@ for i = 1 : N
     scl = scl_arr( i );
 
     input_arr = fs.calc_forcing_term( t_arr_rhy( 1:end-1 ), W, 0, scl*eye( 2 ) );
-    tmp{ i } = input_arr;
     [ y_arr_rhy, ~, ~ ] = trans_sys.rollout( scl*q_des( :, 1 ), zeros( 2, 1), zeros( 2, 1 ), input_arr, 0, t_arr_rhy  );
     plot( a2, t_arr_rhy, y_arr_rhy( 1, : ), 'linewidth', lw, 'color', c_arr( i, : ), 'linestyle', lsty );
     plot( a4, t_arr_rhy, y_arr_rhy( 2, : ), 'linewidth', lw, 'color', c_arr( i, : ), 'linestyle', lsty );
