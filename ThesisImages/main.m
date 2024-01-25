@@ -560,40 +560,43 @@ fig_save( f, 'ThesisImages/images/task_space_position_rhythmic' )
 %%  -- (2A) For Discrete Movement
 
 % Generate an example orientation trajectory 
-Ri = eye( 3 );
-Rg = rotx( 30 ) * roty( 20 ) * rotz( 50 );
+% This is a demonstrated trajectory
+Ri_demo = eye( 3 );
+Rg_demo = rotx( 30 ) * roty( 20 ) * rotz( 50 );
 
 % Get the axis (or diff between two SO3 matrices)
-w = LogSO3( Ri' * Rg );
-theta = norm( w );
-w_hat = w/theta;
+w_del = LogSO3( Ri_demo' * Rg_demo );
+theta = norm( w_del );
+w_del_hat = w_del/theta;
 
 % We use the symbolic form to get the angular velocity 
 syms t positive
 
 % Get the symbolic form for the trajectory
+% Duration and min-jerk-trajectory in the so3 Lie Algebra
 D = 3.0;
 traj = 10*(t/D)^3 - 15*(t/D)^4 + 6*(t/D)^5;
-R_sym = Ri * ( eye( 3 ) + sin( theta*traj ) * w_hat + (1 - cos( theta*traj ) ) * w_hat^2 ); 
+R_sym = Ri_demo * ( eye( 3 ) + sin( theta*traj ) * w_del_hat + (1 - cos( theta*traj ) ) * w_del_hat^2 ); 
 
 % Also get the angular velocity in symbolic form
+% dR = [w]R for {S} frame
 ang_vel_sym = diff( R_sym, t ) * R_sym.';
 
 % Change these to MATLAB_functions
-R_func = matlabFunction( R_sym );
-ang_vel_func = matlabFunction( ang_vel_sym );
+R_func     = matlabFunction( R_sym );
+w_vel_func = matlabFunction( ang_vel_sym );
 
 % Regenerate the trajectories 
 P = 500;
 t_des = linspace( 0, D, P );
 
 R_des   = zeros( 3, 3, P );
-ang_des = zeros( 3, 3, P );
+w_des = zeros( 3, 3, P );
 
 for i = 1 : P
    t = t_des( i ); 
    R_des(   :, :, i ) = R_func( t );
-   ang_des( :, :, i ) = ang_vel_func( t );
+   w_des( :, :, i )   = w_vel_func( t );
 end
 
 % Calculate the error vector and its derivative
@@ -601,18 +604,21 @@ end
  derr = zeros( 3, P );
 dderr = zeros( 3, P );
 
+% Set the goal orientation as same with the demonstration
+Rg = Rg_demo;
+
 for i = 1 : P
     R   = R_des( :, :, i );
-    ang = ang_des( :, :, i );
+    w   = w_des( :, :, i );
     R0g = R' * Rg;
    err( :, i ) = so3_to_R3( LogSO3( R0g ) );
    
-   dR = -R' * ang * Rg;
+   dR = -R' * w * Rg;
     
    % Get theta
    th = norm( LogSO3( R0g ) );
    
-   if th >= 1e-7
+   if th >= eps
         tmp1 = ( ( th * cos( th ) - sin( th ) ) / ( 4 * sin( th )^3 ) ) * trace( dR ) * ( R0g - R0g' );
         tmp2 = -th/( 2 * sin( th ) ) * ( dR - dR' );
    else
@@ -626,7 +632,7 @@ end
 
 % For dderr, do numerical differentiation
 for i = 1 : 3
-    dderr( i, : ) =  data_diff( derr( i, : ) );
+    dderr( i, : ) =  data_diff( derr( i, : ), t_des );
     dderr( i, : ) = smoothdata( dderr( i, : ), "gaussian", 50 );
 end
 
@@ -644,11 +650,11 @@ trans_sys = TransformationSystem( alpha_z, beta_z, cs );
 fs        = NonlinearForcingTerm( cs, N );
 
 % Scaling vector 
+Ri = Ri_demo;
 Se = diag( so3_to_R3( LogSO3( Ri' * Rg ) ) );
 
 % Calculating the required Nonlinear Forcing Term
 B = inv( Se ) * trans_sys.get_desired( err, derr, dderr, zeros( 3, 1 ) );
-
 
 % The A matrix 
 A = zeros( N, P );
@@ -668,7 +674,6 @@ T     = D*2;
 Nt    = 3000;
 t_arr_dis = linspace( 0, T, Nt+1 );
 
-
 % Scaling vector 
 Se2 = diag( so3_to_R3( LogSO3( Ri' * Rg ) ) );
 
@@ -679,3 +684,180 @@ f= figure(); a = axes( 'parent', f);
 hold on
 plot( a, t_arr_dis, err_roll,'linewidth', 5, 'color', c_blue )
 plot( a, t_des, err,'linewidth', 8, 'color', 'k', 'linestyle', '--' )
+
+% Plotting the frames and save these too
+f = figure( ); a = axes( 'parent', f );
+hold on 
+axis equal
+% Select the time that we want to to show
+t_arr = D*[ 0.0, 0.15, 0.3, 0.45, 0.6, 0.75, 1.0 ];
+N = length( t_arr );
+
+off = 1.0;
+scl1 = 0.6;
+scl2 = 0.3;
+
+for i = 1 : N
+    t_tmp = t_arr( i );
+
+    % For the demo, get the frame that is most close to each other
+    diff1 = abs( t_des - t_tmp );
+    idx1 = find( diff1 == min( diff1 ) );
+
+    % Reconstruct the array 
+    e1 = err( :, idx1 );
+    R_cmp = Rg * ExpSO3( R3_to_so3( e1 ) );
+
+    diff2 = abs( t_arr_dis - t_tmp );
+    idx2 = find( diff2 == min( diff2 ) );
+    
+    e2 = err_roll( :, idx2 );
+    R_result = Rg * ExpSO3( R3_to_so3( e2 ) );
+
+    x = i*off;
+    y = 0;
+    z = 0;
+    
+    x1 = scl1 * R_cmp( :, 1 );
+    y1 = scl1 * R_cmp( :, 2 );
+    z1 = scl1 * R_cmp( :, 3 );
+
+    quiver3( a, x, y, z, x1( 1 ), x1( 2 ), x1( 3 ), 'linewidth', 3, 'color', 'k' )
+    quiver3( a, x, y, z, y1( 1 ), y1( 2 ), y1( 3 ), 'linewidth', 3, 'color', 'k' )
+    quiver3( a, x, y, z, z1( 1 ), z1( 2 ), z1( 3 ), 'linewidth', 3, 'color', 'k' )
+
+    x1 = scl2 * R_result( :, 1 );
+    y1 = scl2 * R_result( :, 2 );
+    z1 = scl2 * R_result( :, 3 );
+
+    quiver3( a, x, y, z, x1( 1 ), x1( 2 ), x1( 3 ), 'linewidth', 8, 'color', 'r' )
+    quiver3( a, x, y, z, y1( 1 ), y1( 2 ), y1( 3 ), 'linewidth', 8, 'color', 'g' )
+    quiver3( a, x, y, z, z1( 1 ), z1( 2 ), z1( 3 ), 'linewidth', 8, 'color', 'b' )
+
+end
+
+%%  -- (2B) For Rhythmic Movement
+
+% We use the symbolic form to generate the trajectory
+syms t positive
+
+% We provide a dummy periodical orientation
+% The period is simply 2
+Tp = 2;
+w0 = 2*pi/2;
+
+rotz1 = [ cos( w0*t + pi/3), -sin( w0*t + pi/3), 0;
+          sin( w0*t + pi/3),  cos( w0*t + pi/3), 0;
+                          0,                  0, 1 ];
+
+R = roty( 10 ) * rotx( 10 ) * rotz( 50 ) * rotz1;
+w = diff( R, t ) * R.';
+
+% Get the function
+R_func = matlabFunction( R ); 
+w_func = matlabFunction( w );
+
+% time demo
+P = 500;
+t_des = linspace( 0, Tp, P );
+
+R_des = zeros( 3, 3, P );
+w_des = zeros( 3, 3, P );
+
+for i = 1 : P
+    tp = t_des( i );
+
+    R_des( :, :, i ) = R_func( tp );
+    w_des( :, :, i ) = w_func( tp );
+
+end
+
+% Get the goal location as the average of 
+tmpR = zeros( 1, 3 );
+for i = 1 : P
+    tmpR = tmpR + LogSO3( R_des( :, :, i ) );
+end
+Rg_demo = ExpSO3( tmpR/P );
+Rg_demo = R_des( :, :, 1 ); 
+
+% Get the error vector from this 
+
+for i = 1 : P
+    R   = R_des( :, :, i );
+    w   = w_des( :, :, i );
+    R0g = R' * Rg_demo;
+   err( :, i ) = so3_to_R3( LogSO3( R0g ) );
+   
+   dR = -R' * w * Rg_demo;
+    
+   % Get theta
+   th = norm( LogSO3( R0g ) );
+   
+   if th >= eps
+        tmp1 = ( ( th * cos( th ) - sin( th ) ) / ( 4 * sin( th )^3 ) ) * trace( dR ) * ( R0g - R0g' );
+        tmp2 = -th/( 2 * sin( th ) ) * ( dR - dR' );
+   else
+      tmp1 = zeros( 3, 3 );
+      tmp2 = zeros( 3, 3 );
+   end
+   
+   derr( :, i ) = so3_to_R3( tmp1 + tmp2 );
+   
+end
+
+% For dderr, do numerical differentiation
+for i = 1 : 3
+    dderr( i, : ) =  data_diff( derr( i, : ), t_des );
+    dderr( i, : ) = smoothdata( dderr( i, : ), "gaussian", 50 );
+end
+
+% Scaling vector 
+Se = diag( so3_to_R3( LogSO3( Ri_demo' * Rg_demo ) ) );
+
+% Calculating the required Nonlinear Forcing Term
+B = inv( Se ) * trans_sys.get_desired( err, derr, dderr, zeros( 3, 1 ) );
+
+% The A matrix 
+A = zeros( N, P );
+
+% Interating along the sample points
+for i = 1:P 
+    t = t_des( i );
+    A( :, i ) = fs.calc_multiple_ith( t, 1:N )/ fs.calc_whole_at_t( t );
+end
+
+% Linear Least-square
+W = B * A' * ( A * A' )^-1;
+
+
+
+% Rollout with the weight array 
+t0i   = 0.0;
+T     = Tp;
+Nt    = 3000;
+t_arr_dis = linspace( 0, T, Nt+1 );
+
+% Parameters of the Transformation System
+tau       = Tp/2/pi;
+alpha_z   = 500.0;
+beta_z    = 0.25 * alpha_z;
+N         = 30;
+
+% DMP, three primitives
+cs        = CanonicalSystem( 'rhythmic', tau, alpha_s );
+trans_sys = TransformationSystem( alpha_z, beta_z, cs );
+fs        = NonlinearForcingTerm( cs, N );
+
+
+% Scaling vector 
+Se2 = diag( so3_to_R3( LogSO3( Ri_demo' * Rg_demo ) ) );
+
+input_arr = fs.calc_forcing_term( t_arr_dis( 1:end-1 ), W, t0i, Se2 );
+[ err_roll, ~, ~ ] = trans_sys.rollout( err( :, 1 ), zeros( 3, 1 ), zeros( 3, 1 ), input_arr, t0i, t_arr_dis  );
+
+
+f= figure(); a = axes( 'parent', f);
+hold on
+plot( a, t_arr_dis, err_roll,'linewidth', 5, 'color', c_blue )
+plot( a, t_des, err,'linewidth', 5, 'color', 'k', 'linestyle', '--' )
+
