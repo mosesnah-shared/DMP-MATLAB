@@ -749,7 +749,6 @@ set( a2, 'view', [ 0, 0 ], 'xticklabel', {}, 'yticklabel', {}, 'zticklabel', {},
 title( 'Discrete', 'fontsize', 45 )
 fig_save( f, 'ThesisImages/images/task_space_orient_discrete' )
 
-%% =======================================================
 %%  -- (3B) For Rhythmic Movement
 
 
@@ -757,7 +756,7 @@ fig_save( f, 'ThesisImages/images/task_space_orient_discrete' )
 % The period is simply 2
 syms t positive
 
-amp = 0.5;
+amp = 1.0;
 D   = 3.0;
 Tp  = D;
 
@@ -874,7 +873,7 @@ plot( a1, t_arr_dis, err_roll,'linewidth', 5, 'color', c_blue )
 plot( a1, t_des, err,'linewidth', 8, 'color', 'k', 'linestyle', '--' )
 xlabel( a1, '$t$ (s)', 'fontsize', 40 );
 ylabel( a1, '$\mathbf{e}(t)$ (-)', 'fontsize', 40 );
-set( a1, 'xlim', [0, max( t_des)], 'ylim', [0, 2.0], 'fontsize', 30 )
+set( a1, 'xlim', [0, max( t_des)], 'ylim', [-0.5, 2.0], 'fontsize', 30 )
 
 % Plotting the frames and save these too
 a2 = subplot( 2, 1, 1 );
@@ -887,7 +886,7 @@ N = length( t_arr );
 off = 0.7;
 scl1 = 0.6;
 scl2 = 0.3;
-
+Rg = Rg_demo;
 for i = 1 : N
     t_tmp = t_arr( i );
 
@@ -936,7 +935,7 @@ title( 'Rhythmic', 'fontsize', 45 )
 
 fig_save( f, 'ThesisImages/images/task_space_orient_rhythmic' )
 
-%%  -- (2C) For Discrete movement with different orientation
+%%  -- (3C) For Discrete movement with different orientation
 
 % Generate an example orientation trajectory 
 % This is a demonstrated trajectory
@@ -1129,7 +1128,7 @@ title( 'Discrete', 'fontsize', 45 )
 fig_save( f, 'ThesisImages/images/task_space_orient_discrete_scl' )
 
 
-%%  -- (2D) For Rhythmic movement with different scale WHY NOT WORKING?
+%%  -- (3D) For Rhythmic movement with different scale WHY NOT WORKING?
  
 % We provide a dummy periodical orientation
 % The period is simply 2
