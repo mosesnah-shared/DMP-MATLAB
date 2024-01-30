@@ -1063,7 +1063,6 @@ a1 = subplot( 2, 1, 2 );
 hold on 
 
 plot( a1, t_arr_dis, err_roll,'linewidth', 5, 'color', c_blue )
-plot( a1, t_des, err,'linewidth', 8, 'color', 'k', 'linestyle', '--' )
 xlabel( a1, '$t$ (s)', 'fontsize', 40 );
 ylabel( a1, '$\mathbf{e}(t)$ (-)', 'fontsize', 40 );
 set( a1, 'xlim', [0, max( t_des)], 'ylim', [-1.5, 1.5], 'fontsize', 30 )
@@ -1105,14 +1104,6 @@ for i = 1 : N
     y = 0;
     z = 0;
     
-    x1 = scl1 * R_cmp( :, 1 );
-    y1 = scl1 * R_cmp( :, 2 );
-    z1 = scl1 * R_cmp( :, 3 );
-
-    quiver3( a2, x, y, z, x1( 1 ), x1( 2 ), x1( 3 ), 'linewidth', 3, 'color', 'k' )
-    quiver3( a2, x, y, z, y1( 1 ), y1( 2 ), y1( 3 ), 'linewidth', 3, 'color', 'k' )
-    quiver3( a2, x, y, z, z1( 1 ), z1( 2 ), z1( 3 ), 'linewidth', 3, 'color', 'k' )
-
     x1 = scl2 * R_result( :, 1 );
     y1 = scl2 * R_result( :, 2 );
     z1 = scl2 * R_result( :, 3 );
