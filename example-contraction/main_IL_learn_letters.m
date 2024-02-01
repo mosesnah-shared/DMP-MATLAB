@@ -12,7 +12,7 @@ fig_config( 'fontSize', 20, 'markerSize', 10 )
 %%  -- (1A) Import Data
 
 % Import the data
-traj_name = 'M2';
+traj_name = 'A';
 load( [ './alphabets/', traj_name, '.mat' ] );
     
    t_arr = data.t_arr;
@@ -32,7 +32,7 @@ N  = 50;
 
 % Parameters of DMP
 alpha_s = 1.0;
-alpha_z = 1000.0;
+alpha_z = 250.0;
 beta_z  = 0.5 * alpha_z;
 tau = D;
 

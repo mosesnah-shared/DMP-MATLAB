@@ -221,7 +221,7 @@ end
 % v = VideoWriter( 'video.mp4','MPEG-4' );
 % v.FrameRate = 30;
 
-% open( v );f
+% open( v );
 Nstep = round( 1/dt / 30 );
 
 f = figure( ); a = axes( 'parent', f );
