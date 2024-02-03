@@ -7,6 +7,14 @@
 clear; close all; clc;
 fig_config( 'fontSize', 20, 'markerSize', 10 )
 
+% Color map
+c_dis = abyss( 2 ); c_dis = c_dis( end, : );
+
+% Get the colormap
+c_rhy = copper( 10 );
+c_rhy = c_rhy ( end-2, : );
+
+
 %% =======================================================
 %% (1-) Merging Two Discrete Movements
 %%  -- (1A) Calling the Weight Values and check the output
@@ -48,12 +56,13 @@ plot( a, y_arr2( 1, : ), y_arr2( 2, : ), 'linewidth', 6 )
 
 %%  -- (1B) Draw the Results
 close all;
-f = figure( ); a = axes( 'parent', f );
+f = figure(  ); a = axes( 'parent', f );
 hold on; axis equal
 
 gain_arr = 0:0.1:1;
 Ntmp = length( gain_arr );
 off = 10.0;
+
 for i = 1: Ntmp
     gain = gain_arr( i );
 
@@ -62,8 +71,13 @@ for i = 1: Ntmp
 
     [ y_arr_comb, ~, ~] = trans_sys.rollout( zeros( n, 1 ), zeros( n, 1 ), goal, F_arr, t0i, t_arr  );    
     
-    plot( a, (i-1)*off+y_arr_comb( 1, : ), y_arr_comb( 2, : ), 'linewidth', 6 )
+    plot( a, (i-1)*off+y_arr_comb( 1, : ), y_arr_comb( 2, : ), 'linewidth', 6, 'color', c_dis )
 end
+set( a, 'xticklabel', {}, 'yticklabel', {}, 'xlim', [-10, 120], 'ylim', [-10, 20]  )
+set( a, 'color', 'none' )
+% fig_save( f, './Images/merged_movs/dis_and_dis')
+export_fig ./Images/merged_movs/dis_and_dis.pdf -transparent
+
 
 %% =======================================================
 %% (2-) Merging Discrete and Rhythmic Movements
@@ -115,15 +129,23 @@ hold on; axis equal
 gain_arr = 0:0.1:1;
 Ntmp = length( gain_arr );
 off = 10.0;
+
+% Get the colormap
+c_arr = colormap( abyss( Ntmp ) );
+
 for i = 1: Ntmp
     gain = gain_arr( i );
     F_arr =  F_arr_d * gain + F_arr_r * ( 1 - gain );
     goal  =  dis.goal * gain;
 
-    [ y_arr_comb, ~, ~] = trans_sys_d.rollout( zeros( n, 1 ), zeros( n, 1 ), goal, F_arr, t0i, t_arr  );    
+    [ y_arr_comb, ~, ~] = trans_sys_d.rollout( scl_r*(1-gain)*rhy.p_init, zeros( n, 1 ), goal, F_arr, t0i, t_arr  );    
     
-    plot( a, (i-1)*off+y_arr_comb( 1, : ), y_arr_comb( 2, : ), 'linewidth', 6 )
+    plot( a, (i-1)*off+y_arr_comb( 1, : ), y_arr_comb( 2, : ) + (Ntmp-i+1)*0.4, 'linewidth', 6, 'color', c_dis * ( i/Ntmp) + c_rhy * ( 1-i/Ntmp ) ) 
 end
+
+set( a, 'xticklabel', {}, 'yticklabel', {}, 'xlim', [-10, 120], 'ylim', [-10, 20]  )
+% fig_save( f, './Images/merged_movs/dis_and_rhy')
+export_fig ./Images/merged_movs/dis_and_rhy.pdf -transparent
 
 %% =======================================================
 %% (3-) Merging Two Rhythmic Movements
@@ -149,7 +171,7 @@ dt    =   1e-3;           % Time-step  for the simulation
 t_arr = 0:dt:T;           % Time array for the simulation
 
 scl1 = 1;
-scl2 = 20;
+scl2 = 26;
 
 F_arr1 = fs_r.calc_forcing_term( t_arr( 1:end-1 ), rhy1.weight, 0, scl1 * eye( 2 ) );
 F_arr2 = fs_r.calc_forcing_term( t_arr( 1:end-1 ), rhy2.weight, 0, scl2 * eye( 2 ) );
@@ -162,7 +184,7 @@ hold on; axis equal
 plot( a, y_arr1( 1, : ), y_arr1( 2, : ), 'linewidth', 6 )
 plot( a, y_arr2( 1, : ), y_arr2( 2, : ), 'linewidth', 6 )
 
-%%  -- (2B) Draw the Results
+%%  -- (3B) Draw the Results
 
 close all;
 f = figure( ); a = axes( 'parent', f );
@@ -170,16 +192,23 @@ hold on; axis equal
 
 gain_arr = 0:0.1:1;
 Ntmp = length( gain_arr );
-off = 10.0;
+off = 33.0;
+
+% Get the colormap
+c_arr = copper( 10 );
+c_arr = c_arr( end-2, : );
 
 for i = 1: Ntmp
     gain = gain_arr( i );
 
     F_arr =    F_arr1 * gain +    F_arr2 * ( 1 - gain );
-     init = scl1 *  rhy1.p_init * gain + scl2 * rhy2.p_init * (1 - gain )
-    dinit = scl1 * rhy1.dp_init * gain + scl2 * rhy2.dp_init * (1 - gain )
+     init = scl1 *  rhy1.p_init * gain + scl2 * rhy2.p_init * (1 - gain );
+    dinit = scl1 * rhy1.dp_init * gain + scl2 * rhy2.dp_init * (1 - gain );
 
     [ y_arr_comb, ~, ~] = trans_sys.rollout( init, dinit, zeros( 2, 1), F_arr, 0, t_arr  );    
     
-    plot( a, (i-1)*off+y_arr_comb( 1, : ), y_arr_comb( 2, : ), 'linewidth', 6 )
+    plot( a, (i-1)*off+y_arr_comb( 1, : ), y_arr_comb( 2, : ), 'linewidth', 6, 'color', c_rhy )
 end
+set( gca,'xticklabel', {}, 'yticklabel', {}, 'xlim', [-25, 360], 'ylim', [-40, 40] )
+% fig_save( f, './Images/merged_movs/rhy_and_rhy')
+export_fig ./Images/merged_movs/rhy_and_rhy.pdf -transparent

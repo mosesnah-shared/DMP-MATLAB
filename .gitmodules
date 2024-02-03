@@ -4,3 +4,6 @@
 [submodule "GeometryLibrary"]
 	path = GeometryLibrary
 	url = https://github.com/mosesnah-shared/GeometryLibrary
+[submodule "export_fig"]
+	path = export_fig
+	url = https://github.com/altmany/export_fig.git
