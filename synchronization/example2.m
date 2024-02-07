@@ -45,7 +45,7 @@ set( a, 'xlim', [-lw, lw], 'ylim', [-lw, lw ])
 % Now, consider a Oscillator with two limit cycles
 % We use three Andronov-Hopf Oscillator 
 phi1 = zeros( 3, 1 );
-phi2 = [ 0, 2*pi/3, 4*pi/3]';
+phi2 = [ 0, 2*pi/3, 3*pi/3]';
 
 % Get the X Matrix
 X = exp( 1i*[phi1, phi2]);
@@ -63,7 +63,7 @@ r = 1.0; w = 2*pi;
 
 % Using complex number
 r0 = r*0.1;
-a  = 0.6;
+a  = 0.3;
 phi = phi1 * a + phi2 * (1-a);
 z_tmp = r0*exp( 1i*phi );
 z1 = z_tmp( 1 ); 
@@ -72,7 +72,7 @@ z3 = z_tmp( 3 );
 
 % First, run the simulation for both oscillators
 dt = 1e-3;
-T  = 12.0;
+T  = 26. 0;
 N  = round( T/dt );
 
 % Time array 
