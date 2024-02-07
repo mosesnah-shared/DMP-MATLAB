@@ -23,7 +23,7 @@ close all;
 
 is_mode = 2;
 
-Nosc = 4;
+Nosc = 1;
 assert( ismember(    Nosc, 1:Nc ) );
 assert( ismember( is_mode, 1:2  ) );
 
@@ -408,7 +408,7 @@ end
 
 
 % Set up the video writer
-outputVideo = VideoWriter( 'videos/synchronization/excitator.mp4', 'MPEG-4' );
+outputVideo = VideoWriter( 'videos/synchronization/diffusive.mp4', 'MPEG-4' );
 outputVideo.FrameRate = 60;
 open( outputVideo );
 
@@ -428,6 +428,176 @@ for frameIdx = 1:numFrames
          x = x_arr{ i };
          set( p_markers{ 1, i }, 'xdata',  x( 1, idx ), 'ydata', x( 2, idx ) )
          set( p_markers{ 2, i }, 'xdata',  t_arr( idx ), 'ydata', phase_arr{ i }( idx ) )
+    end
+    
+    % Capture frame
+    frame = getframe( f );
+    
+    % Write frame to video
+    writeVideo( outputVideo, frame );
+end
+
+% Close the video file
+close( outputVideo );
+
+% Optionally, close the figure
+close( f );
+
+
+
+%% (1D) Synchronization, Diffusive Model w/ Snakebot
+close all;
+% The k should be high enough for synchronization
+% Section 5.3 of Pham, Quang-Cuong, and Jean-Jacques Slotine. 
+% "Stable concurrent synchronization in dynamic system networks." (2007).
+
+Nosc = 6;
+
+% Should be an even number
+assert( ~mod( Nosc,2 ) );  
+
+ang_del = 2*pi/Nosc;
+osc_arr = cell( 1, Nosc );
+x_arr   = cell( 1, Nosc );
+
+% Radius and angular velcoity
+r = 1.0;
+w = pi;
+
+for i = 1 : Nosc
+    osc_arr{ i } = AndronovHopfOSC( w, r );
+end
+
+% First, run the simulation for both oscillators
+dt = 1e-4;
+T  = 8.0;
+N  = round( T/dt );
+
+% Time array 
+t_arr = (0:N)*dt;
+
+% Initialize the array of x
+for i = 1 : Nosc
+    x_arr{ i } = zeros( 2, N+1 );
+    x_arr{ i }( :, 1 ) = 2*rand( 2, 1 )-2;
+end
+
+% Gain
+k = 0;
+
+for i = 2 : N+1
+
+    if i == round( 0.25*N )
+        k = 1e-3;
+    end
+
+    if i == round( 0.7*N )
+        for j = 1 : Nosc
+            osc_arr{ j }.w = 2*pi;
+        end
+    end
+
+    % Iterate through the oscillator
+    for j = 1 : Nosc
+        osc = osc_arr{ j };
+        x   = x_arr{ j };
+
+        if j == Nosc
+            tmp = 1;
+        else
+            tmp = j+1;
+        end
+        input = k* [ cos( ang_del ), -sin( ang_del );
+                     sin( ang_del ),  cos( ang_del ) ] * x_arr{ tmp }( :, i-1 ) - k * x_arr{ j }( :, i-1 );
+
+        x_new = osc.step( dt, x( :, i-1), input );
+        
+        x_arr{ j }( :, i ) = x_new;
+    end
+    
+    
+end
+
+% The arc tangent
+phase_mat = zeros( Nosc, N+1 );
+
+for i = 1 : Nosc
+    x = x_arr{ i };
+    x1 = x( 1, : );
+    x2 = x( 2, : );
+    phase_arr{ i } = mod( atan2( x2,x1 ),2*pi );
+    phase_mat( i, : ) = phase_arr{ i };
+end
+
+phase_mat = cos( phase_mat );
+
+% Change the array to a single matrix
+% Conduct cumsum for sine and cosine
+x_pos_arr = cos( phase_mat );
+y_pos_arr = sin( phase_mat );
+
+x_pos_arr = cumsum( x_pos_arr, 1 );
+y_pos_arr = cumsum( y_pos_arr, 1 );
+
+x_pos_arr = vertcat( zeros( 1, N+1 ), x_pos_arr );
+y_pos_arr = vertcat( zeros( 1, N+1 ), y_pos_arr );
+
+% Draw the video 
+f = figure( ); 
+
+% Draw the background image
+% Set the markers of each image 
+p_markers = cell( 2, Nosc );
+
+m_size = 200;
+lw = 2*r;
+
+for i = 1 : Nosc
+    x = x_arr{ i };
+    a1 = subplot( 2, Nosc, i ); 
+    axis equal
+    a2 = subplot( 2, Nosc, [Nosc+1:Nosc+Nosc/2] );
+    axis equal
+    a3 = subplot( 2, Nosc, [Nosc+1+Nosc/2, 2*Nosc] );
+    axis equal
+    hold( a1, 'on' ); hold( a2, 'on' ); hold( a3, 'on' ); 
+    set( a1, 'xlim', [-lw, lw], 'ylim', [-lw, lw] )
+    set( a2, 'ylim', [-0.1,2.1]*pi, 'xlim', [0, max( t_arr ) ] )
+    set( a3, 'xlim', 3*[-lw, lw], 'ylim', 3*[-lw, lw] )
+
+    plot( a1, x( 1, : ), x( 2, : ), 'linewidth', 3, 'color', c_arr{ i }, 'linestyle', '-' )
+    plot( a2, t_arr, phase_arr{ i }, 'linewidth', 3, 'color', c_arr{ i }, 'linestyle', '-' )    
+
+    p_markers{ 1, i } = scatter( a1, x( 1, 1 ), x( 2, 1 ), m_size, 'markerfacecolor', 'w', 'markeredgecolor', c_arr{ i }, 'linewidth', 4  );
+    p_markers{ 2, i } = scatter( a2, t_arr( 1 ), phase_arr{ i }( 1 ), m_size, 'markerfacecolor', 'w', 'markeredgecolor', c_arr{ i }, 'linewidth', 4  );
+end
+
+p_robot = plot( a3, x_pos_arr( :, 1 ),y_pos_arr( :, 1 ), 'linewidth', 5, 'color', 'k', 'linestyle', '-', 'markersize', 20 );
+
+
+
+% Set up the video writer
+outputVideo = VideoWriter( 'videos/synchronization/snakebot.mp4', 'MPEG-4' );
+outputVideo.FrameRate = 60;
+open( outputVideo );
+
+% Time per frame
+numFrames    = round( T*outputVideo.FrameRate);
+timePerFrame = T / numFrames;
+
+for frameIdx = 1:numFrames
+
+    % Current time for this frame
+    currentTime = (frameIdx - 1) * timePerFrame;
+    
+    % Find the closest time in your timeArray (or interpolate if needed)
+    [~,  idx ] = min( abs( t_arr - currentTime ) );
+
+    for i = 1 : Nosc
+         x = x_arr{ i };
+         set( p_markers{ 1, i }, 'xdata',  x( 1, idx ), 'ydata', x( 2, idx ) )
+         set( p_markers{ 2, i }, 'xdata',  t_arr( idx ), 'ydata', phase_arr{ i }( idx ) )
+         set( p_robot, 'xdata',  x_pos_arr( :, idx ), 'ydata', y_pos_arr( :, idx ) )
     end
     
     % Capture frame
