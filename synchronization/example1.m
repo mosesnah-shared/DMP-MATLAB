@@ -469,7 +469,7 @@ for i = 1 : Nosc
 end
 
 % First, run the simulation for both oscillators
-dt = 1e-4;
+dt = 1e-5;
 T  = 8.0;
 N  = round( T/dt );
 
