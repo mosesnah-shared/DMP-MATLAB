@@ -12,7 +12,7 @@ fig_config( 'fontSize', 20, 'markerSize', 10 )
 %%  -- (1A) Import Data
 
 % Import the data
-traj_name = 'A';
+traj_name = 'M';
 load( [ './alphabets/', traj_name, '.mat' ] );
     
    t_arr = data.t_arr;
@@ -32,7 +32,7 @@ N  = 50;
 
 % Parameters of DMP
 alpha_s = 1.0;
-alpha_z = 10.0;
+alpha_z = 250.0;
 beta_z  = 0.5 * alpha_z;
 tau = D;
 
@@ -61,10 +61,11 @@ end
 w_arr = transpose( ( Phi_mat' * Phi_mat )^-1 * Phi_mat' * f_arr' );
 
 % Rollout with the weight array 
-t0i = 1.0;
-T   = D+1.0;
-N   = 3000;
-t_arr = linspace( 0, T, N+1 ); 
+t0i = 0.3;
+T   = D+t0i;
+N   = 0.5*1e+5;
+dt  = 1e-4;
+t_arr = dt*(0:N); 
 
 % New initial condition
 z0_new = dp_data( :, 1 )/D;
@@ -74,8 +75,10 @@ f = figure( ); a = axes( 'parent', f );
 view( 3 ); axis equal
 hold( a, 'on' );
 
-input_arr = fs.calc_forcing_term( t_arr( 1:end-1 ), w_arr, t0i, eye( 2 ) );
-[ p_arr, z_arr, dp_arr ] = trans_sys.rollout( zeros( 2, 1 ), z0_new, g_new, input_arr, t0i, t_arr  ); 
+scl = 0.1;
+input_arr = fs.calc_forcing_term( t_arr( 1:end-1 ), w_arr, t0i, scl * eye( 2 ) );
+[ p_arr, z_arr, dp_arr ] = trans_sys.rollout( zeros( 2, 1 ), z0_new, scl*g_new, input_arr, t0i, t_arr  ); 
+
 
 % Plotting the Line
 plot( a, p_arr( 1, : ), p_arr( 2, : ), 'linewidth', 5, 'color', 'k' )
