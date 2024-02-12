@@ -32,7 +32,7 @@ N  = 50;
 
 % Parameters of DMP
 alpha_s = 1.0;
-alpha_z = 250.0;
+alpha_z = 10.0;
 beta_z  = 0.5 * alpha_z;
 tau = D;
 
