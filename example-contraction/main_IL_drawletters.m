@@ -12,7 +12,7 @@ fig_config( 'fontSize', 20, 'markerSize', 10 )
 %%  -- (1A) Import Data
 
 % Import the learned weights
-alphabets = { 'M', 'A', 'T', 'L', 'A', 'B' };
+alphabets = { 'A', 'B', 'C' };
 Na = length( alphabets );
 
 % dataset 
@@ -22,7 +22,7 @@ for i = 1 : Na
     a = alphabets{ i };
 
     % Call Data
-    load( [ './learned_parameters/', a, '.mat' ] );
+    load( [ './learned_parameters/discrete/', a, '.mat' ] );
     traj_data{ i } = data;
 end
 
