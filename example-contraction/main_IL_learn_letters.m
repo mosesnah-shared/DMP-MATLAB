@@ -12,7 +12,7 @@ fig_config( 'fontSize', 20, 'markerSize', 10 )
 %%  -- (1A) Import Data
 
 % Import the data
-traj_name = 'M';
+traj_name = 'B';
 load( [ './alphabets/', traj_name, '.mat' ] );
     
    t_arr = data.t_arr;
@@ -34,7 +34,7 @@ N  = 50;
 alpha_s = 1.0;
 alpha_z = 250.0;
 beta_z  = 0.5 * alpha_z;
-tau = D;
+tau = 6;
 
 % Defining the DMPs
 cs        = CanonicalSystem( 'discrete', D, alpha_s );
@@ -63,7 +63,7 @@ w_arr = transpose( ( Phi_mat' * Phi_mat )^-1 * Phi_mat' * f_arr' );
 % Rollout with the weight array 
 t0i = 0.3;
 T   = D+t0i;
-N   = 0.5*1e+5;
+N   = 0.8*1e+5;
 dt  = 1e-4;
 t_arr = dt*(0:N); 
 
