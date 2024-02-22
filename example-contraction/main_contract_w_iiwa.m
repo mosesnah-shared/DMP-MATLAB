@@ -5,6 +5,7 @@
 %% [Initialization] 
 fig_config( 'fontSize', 20, 'markerSize', 10 )
 
+%%
 robot = iiwa14( 'high' );
 robot.init( );
 

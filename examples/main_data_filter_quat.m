@@ -48,7 +48,7 @@ for i = 1 : 7
      q_arr_filt( i, : ) = smoothdata( q_arr_demo( i, : ), "gaussian", 50 );
 
     % Diff and Gaussian Filter of Velocity  
-    dq_arr_filt( i, : ) = data_diff( q_arr_filt( i, : ) );
+    dq_arr_filt( i, : ) = data_diff( q_arr_filt( i, : ), t_arr_demo );
     dq_arr_filt( i, : ) = smoothdata( dq_arr_filt( i, : ), "gaussian", 50 );
 
 end
@@ -132,7 +132,7 @@ ddLogquat_arr = zeros( 3, Np );
 for i = 1 : 3
 
     % Diff and Gaussian Filter of Velocity  
-    ddLogquat_arr( i, : ) = data_diff( dLogquat_arr( i, : ) );
+    ddLogquat_arr( i, : ) = data_diff( dLogquat_arr( i, : ), t_arr_demo );
     ddLogquat_arr( i, : ) = smoothdata( ddLogquat_arr( i, : ), "gaussian", 50 );
 
 end
@@ -140,7 +140,7 @@ end
 %%  -- (1C) Learning the weights by LLS regression
 % The form is exactly the same with Linear DMP
 % Parameters of DMP
-alpha_s   =  2.0;
+alpha_s   =  1.0;
 alpha_z   = 2000.0;
 beta_z    = 0.5 * alpha_z;
 N         = 100;

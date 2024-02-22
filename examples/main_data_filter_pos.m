@@ -12,7 +12,7 @@ fig_config( 'fontSize', 20, 'markerSize', 10 )
 %%  -- (1A) Calling the data and get the Forward Kinematics 
 
 % All dataset are saved under 'data' directory
-idx = 1;
+idx = 2;
 traj_names = [ "lift_up_down", "drawM" ]; 
 file_names = [ "example3/iiwa_example_orient", 'example4/iiwa_example_pos' ];
 
@@ -56,8 +56,8 @@ scatter3( a, p_arr_raw( 1, end ), p_arr_raw( 2, end ), p_arr_raw( 3, end ), 500,
 %%  -- (1B) Filtering out the Position data
 
 % Simple time diff for comparison
-dp_arr_raw  = data_diff(  p_arr_raw );
-ddp_arr_raw = data_diff( dp_arr_raw );
+dp_arr_raw  = data_diff(  p_arr_raw, t_arr_demo );
+ddp_arr_raw = data_diff( dp_arr_raw, t_arr_demo );
 
 % Filtering out the Data
   p_arr_filt = zeros( size( p_arr_raw ), 'like', p_arr_raw );
@@ -70,11 +70,11 @@ for i = 1 : 3
      p_arr_filt( i, : ) = smoothdata( p_arr_raw( i, : ), "gaussian", 50 );
 
     % Diff and Gaussian Filter of Velocity  
-   tmp_vel = data_diff( p_arr_filt );
+   tmp_vel = data_diff( p_arr_filt, t_arr_demo );
     dp_arr_filt( i, : ) = smoothdata( tmp_vel( i, : ), "gaussian", 50 );
 
     % Diff and Gaussian Filter of Acceleration
-   tmp_acc = data_diff( dp_arr_filt );
+   tmp_acc = data_diff( dp_arr_filt,t_arr_demo );
    ddp_arr_filt( i, : ) = smoothdata( tmp_acc( i, : ), "gaussian", 50 );   
 end
 

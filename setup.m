@@ -20,6 +20,6 @@ add_folders( 'DMPs', 'examples', 'trajectory', 'utils', 'export_fig', ...
              'oscillators', 'synchronization' );
 
 % Also run the setup script under Explicit-MATLAB
-cd( 'Explicit-MATLAB' );
-setup
-cd( '..' );
+% cd( 'Explicit-MATLAB' );
+% setup
+% cd( '..' );

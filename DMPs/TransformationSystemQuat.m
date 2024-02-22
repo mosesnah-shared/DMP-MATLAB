@@ -16,7 +16,7 @@ classdef TransformationSystemQuat < handle
     end
     
     methods
-        function obj = TransformationSystemOrient( alpha_z, beta_z, cs )
+        function obj = TransformationSystemQuat( alpha_z, beta_z, cs )
             % ===========================================================================
             % Descriptions
             % ------------

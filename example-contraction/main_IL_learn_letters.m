@@ -12,7 +12,7 @@ fig_config( 'fontSize', 20, 'markerSize', 10 )
 %%  -- (1A) Import Data
 
 % Import the data
-traj_name = 'B';
+traj_name = 'M';
 load( [ './alphabets/', traj_name, '.mat' ] );
     
    t_arr = data.t_arr;
@@ -32,7 +32,7 @@ N  = 50;
 
 % Parameters of DMP
 alpha_s = 1.0;
-alpha_z = 250.0;
+alpha_z = 1000.0;
 beta_z  = 0.5 * alpha_z;
 tau = 6;
 
@@ -76,7 +76,7 @@ view( 3 ); axis equal
 hold( a, 'on' );
 
 scl = 0.1;
-input_arr = fs.calc_forcing_term( t_arr( 1:end-1 ), w_arr, t0i, scl * eye( 2 ) );
+input_arr = fs.calc_forcing_term( t_arr( 1:end-1 ), w_arr, t0i, scl * eye( 2 ), 'trimmed' );
 [ p_arr, z_arr, dp_arr ] = trans_sys.rollout( zeros( 2, 1 ), z0_new, scl*g_new, input_arr, t0i, t_arr  ); 
 
 
