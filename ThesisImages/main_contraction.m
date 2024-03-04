@@ -373,3 +373,249 @@ scatter( a, p_data_arr( 1,   1, 1 ), p_data_arr( 2,   1, 1 ), 300, 'filled', 'o'
 scatter( a, p_data_arr( 1, end, 1 ), p_data_arr( 2, end, 1 ), 300, 'filled', 'd', 'markerfacecolor', 'white', 'markeredgecolor', cblue, 'linewidth', 4 )    
 
 export_fig ./Images/DMP_images/sequenceDMP_3.pdf -transparent
+
+
+%% (1C) Dynamic Movement Primitives for Synchronized Movements
+%% (--) (-1a) Data Processing
+
+% Doing it for a 6DOF Robot
+Nosc = 6;
+
+c_arr = cell( 1, 7 );
+c_arr{ 1 } = [0.0000 0.4470 0.7410];
+c_arr{ 2 } = [0.8500 0.3250 0.0980];
+c_arr{ 3 } = [0.9290 0.6940 0.1250];
+c_arr{ 4 } = [0.4940 0.1840 0.5560];
+c_arr{ 5 } = [0.4660 0.6740 0.1880];	
+c_arr{ 6 } = [0.3010 0.7450 0.9330];
+c_arr{ 7 } = [0.6350 0.0780 0.1840];
+
+% Now, define three complex numbers for the three oscillators 
+% Parameters of the Andronov-Hopf Oscillator 
+r = 1.0; w = 2*pi;
+
+% Using complex number
+r0 = 0.5;
+
+r_arr = 0.9*ones( 1, Nosc );
+phase_off = 2*pi*rand( 1, Nosc )-2*pi;
+
+% First, run the simulation for both oscillators
+dt = 1e-4;
+T  = 6.0;
+N  = round( T/dt );
+
+% Time array 
+t_arr = (0:N)*dt;
+z_arr = zeros( Nosc, N+1 );
+z_arr( :, 1 ) = r_arr .* exp( 1i * ( pi/2 + phase_off ) );
+
+% This is a zero matrix without any synchronization
+M1 = zeros( Nosc, Nosc );
+
+k = 6.0;
+M2 = diag( -k*ones( 1, Nosc ) ) +k * circshift( diag( exp( 1i* (2*pi/Nosc) ) * ones( 1, Nosc )  ) ,1,2  );
+
+M = M1;
+
+for i = 2 : N+1
+
+    % Calculating dz 
+    dz = zeros( 6, 1 );
+    z_old = z_arr( :, i-1 );
+    for j = 1 : Nosc
+        dz( j ) =  ( ( r^2-abs( z_old( j ) )^2 ) + 1i*w ) * z_old( j ) + M( j, : ) * z_old;
+    end
+
+    if i == round( N/8 )
+        M=M2;
+    end
+
+    z_arr( :, i ) = z_old + dz*dt;
+end
+
+%% (--) (-1ab) Drawing the Main Plots
+
+f = figure( ); a = axes( 'parent' ,f );
+hold on
+
+for i = 1 : Nosc
+    plot( a, t_arr, angle( z_arr( i, : ) ), 'linewidth', 5, 'color', c_arr{ i } );
+end
+set( a, 'xticklabel', {}, 'yticklabel', {} )
+xlabel( a, '$t$ (s)', 'fontsize', 40)
+
+export_fig ./Images/synchronization/sync1.pdf -transparent
+
+
+%% (--) (-1b) Drawing the Plots
+close all;
+
+f = figure( ); 
+
+%Setting the moment
+Nm = 6000;
+for i = 1 : Nosc
+    a = subplot( 1, Nosc, i  ); set( a, 'parent', f );
+    hold on;
+    plot( a, r*cos( 0:0.001:2*pi),r*sin( 0:0.001:2*pi), 'linewidth', 5, 'color', c_arr{ i } )
+    scatter( a, real( z_arr( i, Nm ) ), imag( z_arr( i, Nm ) ), 500, 'o', 'filled', 'linewidth', 5, 'markeredgecolor', c_arr{ i }, 'markerfacecolor', 'w' );
+    axis equal
+    set( a, 'xlim', [-2, 2], 'ylim', [-2, 2], 'xticklabel', {}, 'yticklabel', {})
+end
+
+
+export_fig ./Images/synchronization/sync2.pdf -transparent
+
+f = figure( ); 
+%Setting the moment
+Nm = 50000;
+for i = 1 : Nosc
+    a = subplot( 1, Nosc, i  ); set( a, 'parent', f );
+    hold on;
+    plot( a, r*cos( 0:0.001:2*pi),r*sin( 0:0.001:2*pi), 'linewidth', 5, 'color', c_arr{ i } )
+    scatter( a, real( z_arr( i, Nm ) ), imag( z_arr( i, Nm ) ), 500, 'o', 'filled', 'linewidth', 5, 'markeredgecolor', c_arr{ i }, 'markerfacecolor', 'w' );
+    axis equal
+    set( a, 'xlim', [-2, 2], 'ylim', [-2, 2], 'xticklabel', {}, 'yticklabel', {})
+end
+
+export_fig ./Images/synchronization/sync3.pdf -transparent
+
+%% (--) (-1c) Drawing the Plots
+% With this, generating a robot motion from this 
+% Getting the angle of z_arr 
+
+ang = angle( z_arr );
+
+% We want to generate a motion of 
+% ang, ang +2pi*1/6, ang+2pi*2/6,...
+
+% Using cosine for the angles 
+joint_angs = cos( ang );
+
+% Get x and y values
+x = cos( joint_angs + pi/2 );
+y = sin( joint_angs + pi/2 );
+
+xorig = zeros( 1, length( t_arr ) );
+yorig = zeros( 1, length( t_arr ) );
+x_abs = cumsum( x, 1 );
+y_abs = cumsum( y, 1 );
+
+x_abs = [ xorig; x_abs ];
+y_abs = [ yorig; y_abs ];
+
+% Moments
+N_arr = round( N/8) - 600*(1:11)-500;
+alpha = 0.5*ones( 1, length(N_arr));
+f = figure(); a = axes( 'parent', f );
+hold on
+
+for i = 1 : Nosc
+    for j = 1 : length( N_arr )
+        idx = N_arr( j );
+        xtmp = x_abs( i:i+1, idx );
+        ytmp = y_abs( i:i+1, idx );
+        plot( a, xtmp, ytmp, 'linewidth', 5, 'color', [c_arr{ i }, alpha( j )] );
+
+        xtmp = x_abs( :, idx );
+        ytmp = y_abs( :, idx);        
+        scatter( a, xtmp( i ), ytmp( i ), 500, 'o', 'filled', 'markerfacecolor', 'w', 'markeredgecolor', c_arr{ i }, 'linewidth', 5 )        
+
+        if i == Nosc
+            % Final end-effector
+            scatter( a, xtmp( end ), ytmp( end ), 500, 'o', 'filled', 'markerfacecolor', 'w', ...
+                                'markeredgecolor', 'k', 'markeredgealpha', alpha( j ), 'markerfacealpha', alpha( j ), 'linewidth', 5 )
+        end        
+    end
+
+end
+
+for i = 1 : Nosc
+    plot( a, x_abs( i, min( N_arr ):max( N_arr ) ), y_abs( i, min( N_arr ):max( N_arr ) ), 'linewidth', 5, 'color', c_arr{ i } );
+end
+plot( a, x_abs( end, min( N_arr ):max( N_arr ) ), y_abs( end, min( N_arr ):max( N_arr ) ), 'linewidth', 5, 'color', 'k' );
+
+axis equal
+set( a, 'xlim', [-3.5, 3.5], 'ylim', [-1, 6], 'xticklabel', {}, 'yticklabel', {})
+
+export_fig ./Images/synchronization/sync4.pdf -transparent
+
+
+%% (--) (-1b) Drawing the Plots
+close all;
+
+f = figure( ); 
+for i = 1 : Nosc
+    a = subplot( 1, Nosc, i  ); set( a, 'parent', f );
+    hold on;
+    plot( a, real( z_arr( i, : ) ), imag( z_arr( i, : ) ), 'linewidth', 5, 'color', c_arr{ i } );
+    axis equal
+    set( a, 'xlim', [-2, 2], 'ylim', [-2, 2])
+end
+
+% With this, generating a robot motion from this 
+% Getting the angle of z_arr 
+
+ang = angle( z_arr );
+
+% We want to generate a motion of 
+% ang, ang +2pi*1/6, ang+2pi*2/6,...
+
+% Using cosine for the angles 
+joint_angs = cos( ang );
+
+% Get x and y values
+x = cos( joint_angs + pi/2 );
+y = sin( joint_angs + pi/2 );
+
+xorig = zeros( 1, length( t_arr ) );
+yorig = zeros( 1, length( t_arr ) );
+x_abs = cumsum( x, 1 );
+y_abs = cumsum( y, 1 );
+
+x_abs = [ xorig; x_abs ];
+y_abs = [ yorig; y_abs ];
+
+% Moments
+N_arr = round( N/8) + 1000*(1:11)+20000;
+alpha = 0.5*ones( 1, length(N_arr));
+f = figure(); a = axes( 'parent', f );
+hold on
+
+for i = 1 : Nosc
+    for j = 1 : length( N_arr )
+        idx = N_arr( j );
+        xtmp = x_abs( i:i+1, idx );
+        ytmp = y_abs( i:i+1, idx );
+        pline = plot( a, xtmp, ytmp, 'linewidth', 5, 'color', [c_arr{ i }, alpha( j )] );
+
+        xtmp = x_abs( :, idx );
+        ytmp = y_abs( :, idx);        
+        scatter( a, xtmp( i ), ytmp( i ), 500, 'o', 'filled', 'markerfacecolor', 'w', 'markeredgecolor', c_arr{ i }, 'linewidth', 5 )        
+
+        if i == Nosc
+            % Final end-effector
+            scatter( a, xtmp( end ), ytmp( end ), 500, 'o', 'filled', 'markerfacecolor', 'w', ...
+                                'markeredgecolor', 'k', 'markeredgealpha', alpha( j ), 'markerfacealpha', alpha( j ), 'linewidth', 5 )
+        end        
+    end
+
+
+end
+
+
+for i = 1 : Nosc
+    plot( a, x_abs( i, min( N_arr ):max( N_arr ) ), y_abs( i, min( N_arr ):max( N_arr ) ), 'linewidth', 5, 'color', c_arr{ i } );
+end
+plot( a, x_abs( end, min( N_arr ):max( N_arr ) ), y_abs( end, min( N_arr ):max( N_arr ) ), 'linewidth', 5, 'color', 'k' );
+
+axis equal
+set( a, 'xlim', [-3.5, 3.5], 'ylim', [-1, 6], 'xticklabel', {}, 'yticklabel', {})
+
+export_fig ./Images/synchronization/sync5.pdf -transparent
+
+
+%% (1D) Dynamic Movement Primitives Synchronization Primitives
+
+
