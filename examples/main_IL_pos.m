@@ -22,7 +22,7 @@ fig_config( 'fontSize', 20, 'markerSize', 10 )
 
 y0d = [ 4.0; 4.0 ];
 gd  = [ 0.0; 0.0 ];
-D   = 4.0;
+D   = 1.0;
 n   = length( y0d );
 
 % Parameters for the Canonical System
@@ -33,8 +33,8 @@ alpha_s =  1.0;
 N = 50;
 
 % Parameters of the Transformation System
-alpha_z   = 100.0;
-beta_z    = 0.5 * alpha_z;
+alpha_z   = 10.0;
+beta_z    = 0.25 * alpha_z;
 
 cs        = CanonicalSystem( 'discrete', tau, alpha_s );
 trans_sys = TransformationSystem( alpha_z, beta_z, cs );
@@ -48,17 +48,9 @@ P = 100;
 % Equal Sampling along time with duration D
 t_P = linspace( 0.0, D, P );
 
-% Desired Trajectories, position, velocity and acceleration.
-  y_des = zeros( n, P );
- dy_des = zeros( n, P );
-ddy_des = zeros( n, P );
 
-for i = 1 : P
-    [ p, dp, ddp ] = min_jerk_traj( t_P( i ), y0d, gd, D, 0 );
-      y_des( :, i ) =   p;
-     dy_des( :, i ) =  dp;
-    ddy_des( :, i ) = ddp;
-end
+[ y_des, dy_des, ddy_des ] = min_jerk_traj( y0d, gd, D, t_P, 0 );
+
 
 % Calculating the required Nonlinear Forcing Term
 f_arr   = trans_sys.get_desired( y_des, dy_des, ddy_des, gd );

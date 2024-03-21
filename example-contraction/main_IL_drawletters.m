@@ -12,7 +12,7 @@ fig_config( 'fontSize', 20, 'markerSize', 10 )
 %%  -- (1A) Import Data
 
 % Import the learned weights
-alphabets = { 'A', 'B', 'C' };
+alphabets = { 'A_loose', 'B_loose', 'C_loose' };
 Na = length( alphabets );
 
 % dataset 

@@ -228,8 +228,8 @@ p_arr = p_arr - goal;
 % Parameters of DMP
 N = 50;
 alpha_s = 1.0;
-alpha_z = 250.0;
-beta_z  = 0.5 * alpha_z;
+alpha_z = 100.0;
+beta_z  = 0.25 * alpha_z;
 tau = Tp/(2*pi);
 
 % Defining the DMPs
@@ -268,7 +268,10 @@ input_arr = fs.calc_forcing_term( t_arr( 1:end-1 ), w_arr, 0, eye( 2 ) );
 
 plot( a, p_roll( 1, : ), p_roll( 2, : ), 'linewidth', 4 )
 plot( a,  p_arr( 1, : ),  p_arr( 2, : ), 'linewidth', 8, 'linestyle', '--' , 'color', 'k')
+
 %%  -- (2C) Saving the Data for future rollout
+
+
 
 data = struct;
 
@@ -281,5 +284,6 @@ data.beta_z  =  beta_z;
 data.weight  = w_arr;
 data.p_init  =  p_func( 0 );
 data.dp_init =  dp_func( 0 );
+data.goal    = goal;
 
 save( ['learned_parameters/rhythmic/', name_traj ,'.mat' ], 'data' );

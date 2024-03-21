@@ -107,7 +107,7 @@ export_fig ./Images/DMP_images/dis_and_rhy_DMP.pdf -transparent
 %% (--) (-1a) Data Processing
 close all
 % Import the learned weights
-alphabets = { 'A', 'B', 'C' };
+alphabets = { 'A_loose', 'B_loose', 'C_loose' };
 Na = length( alphabets );
 
 % dataset 
@@ -285,14 +285,12 @@ for i = 1 : length( t_arr )-1
 
     end
 
-
     xc_arr( :, i+1 ) = xc_arr( :, i ) + dx * dt;     
     xcurr = xc_arr( :, i+1 );
 
 end
 
 % plot( a, xc_arr( 2, : ), xc_arr( 3, : ))
-%% (--) (-1b) Plotting, Figure 1
 close all
 % Drawing the Figure 
 % First, the first letter 
