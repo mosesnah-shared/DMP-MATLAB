@@ -220,7 +220,7 @@ for i = 1 : Ntraj
 f = figure( );
 a1 = subplot( 1, 2, 1 );
 hold on
-plot( a1, p_data_arr( 1, :, i ), p_data_arr( 2, :, i ) )
+plot( a1, p_data_arr( 1, :, i ), p_data_arr( 2, :, i ), 'linewidth', 10, 'color', c_blue )
 scatter( a1, p_data_arr( 1,   1, i ), p_data_arr( 2,   1, i ), 500, 'filled', 'o', 'markerfacecolor', 'w', 'markeredgecolor', c_blue, 'linewidth', 4 )
 scatter( a1, p_data_arr( 1, end, i ), p_data_arr( 2, end, i ), 500, 'filled', 'd', 'markerfacecolor', 'w', 'markeredgecolor', c_blue, 'linewidth', 4 )
 axis equal
@@ -236,8 +236,8 @@ a2 = subplot( 1, 2, 2 );
 hold on
 xlabel( '$t$ (s)', 'fontsize', 40 )
 ylabel( '$\mathbf{f}_d(t)$ (-)', 'fontsize', 40 )
-plot( t_arr( 1:end-1 ), prim_for_plot( 1, :, i ), 'color', c_blue, 'linestyle', '-' )
-plot( t_arr( 1:end-1 ), prim_for_plot( 2, :, i ), 'color', c_blue, 'linestyle', ':' )
+plot( t_arr( 1:end-1 ), prim_for_plot( 1, :, i ), 'linewidth', 10, 'color', c_blue, 'linestyle', '-' )
+plot( t_arr( 1:end-1 ), prim_for_plot( 2, :, i ), 'linewidth', 10, 'color', c_blue, 'linestyle', ':' )
 set( a2, 'xlim', [ 0, traj_data{ i }.tau ] )
 set( a2, 'xticklabel', {} , 'yticklabel', {} )
 legend( 'X', 'Y', 'fontsize', 40, 'location', 'northwest' )
@@ -290,7 +290,7 @@ end
 plot( a2, t_arr( 1:end-1 ), summed_prim( 1, : ), 'linestyle', '-', 'color', c_blue )
 plot( a2, t_arr( 1:end-1 ), summed_prim( 2, : ), 'linestyle', ':', 'color', c_blue )
 
-set( a2, 'fontsize', 30, 'xlim', [ 0., 18.0 ] )
+set( a2, 'fontsize', 30, 'xlim', [ 0., 18.0 ], 'yticklabel', {}  )
 xlabel( '$t$ (s)', 'fontsize', 40 )
 % ylabel( '$\sum_{i=1}^{3}\alpha_i(t)\mathbf{f}_{d,i}(t)$(-)', 'fontsize', 40 )
 
@@ -569,7 +569,7 @@ tmp2 = load( '../learned_parameters/rhythmic/circle.mat' ); rhy2 = tmp2.data;
 
 w_ratio = [ sqrt( 3 ), sqrt( 17 ), sqrt( 22 ) ];
 tmp = { 'a', 'b', 'c' }; 
-my_title = { '$\omega_1/\omega_2=\sqrt{3}$', '$\omega_1/\omega_2=\sqrt{17}$', '$\omega_1/\omega_2=\sqrt{22}$' };
+my_title = { '$\tau_1/\tau_2=\sqrt{3}$', '$\tau_1/\tau_2=\sqrt{17}$', '$\tau_1/\tau_2=\sqrt{22}$' };
 f = figure( );
 for j = 1:length( w_ratio )
 
@@ -592,7 +592,7 @@ fs_r2        = NonlinearForcingTerm( cs_r2, N );
 trans_sys_r2 = TransformationSystem( rhy2.alpha_z, rhy2.beta_z, cs_r1 );
 
 % Rollout for each discrete movement
-T     =   2*pi*7;           % The   whole time of the simulation 
+T     =   2*pi*4;           % The   whole time of the simulation 
 dt    =   1e-3;           % Time-step  for the simulation
 t_arr = 0:dt:T;           % Time array for the simulation
 
