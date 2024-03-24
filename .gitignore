@@ -1,3 +1,5 @@
 data
 .DS_Store
 *.asv
+*.mp4
+figures

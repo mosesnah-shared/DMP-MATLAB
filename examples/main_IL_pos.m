@@ -1,190 +1,332 @@
-%% ==================================================================
-%% [Title] Imitation Learning, in 3D Space
-% Author: Moses Chong-ook Nah
-%  Email: mosesnah@mit.edu
-%   Date: 2023.08.15
-%% ==================================================================
+% [Title]     Basic Imitation Learning
+% [Author]    Moses Chong-ook Nah
+% [Email]     mosesnah@mit.edu
+% [Update]    At 2023.11.12
 
-%% [0A] Initialization
+%% (--) Initialization
 clear; close all; clc;
 fig_config( 'fontSize', 20, 'markerSize', 10 )
 
-%% [1-] Imitation Learning of Minimum-jerk Trajectory
-%% ---- [1A] Parameter Initialization
+%% =======================================================
+%% (1-) Imitation Learning for Minimum-jerk Trajectory
+%%  -- (1A) Initialization
 
 % The trajectory we aim to imitate is the Minimum jerk Trajectory
-% The initial (q0i), final posture (q0f), duration (D), starting time (t0i) of the trajectory
-q0i = 0.0;
-q0f = 1.0;
+% The parameters of the trajectory include:
+%   (1) Initial position (y0d) (column vec.)
+%   (2)   Final position (gd) (column vec.)
+%   (3) Duration (D) 
+%   (4) Starting time (t0i)
+% For (1), (2) the g subscript is to emphasize the initial/final
+% position of a "d"emonstrated trajectory
+
+y0d = [ 4.0; 4.0 ];
+gd  = [ 0.0; 0.0 ];
 D   = 1.0;
-t0i = 0.0;
+n   = length( y0d );
 
-% For Imitation Learning, one should define the number of basis function
-N  = 50;
+% Parameters for the Canonical System
+tau     =    D;
+alpha_s =  1.0;
 
-% Parameters of the 3 DMPs
-alpha_z = 10.0;
-alpha_s = 1.0;
-beta_z  = 1/4 * alpha_z;
-tau     = D;
-g       = q0f;
-y0      = q0i;
-z0      = 0;
+% The number of Basis Function for the Nonlinear Forcing Term
+N = 50;
+
+% Parameters of the Transformation System
+alpha_z   = 10.0;
+beta_z    = 0.25 * alpha_z;
 
 cs        = CanonicalSystem( 'discrete', tau, alpha_s );
-trans_sys = TransformationSystem( alpha_z, beta_z, tau, y0, z0 );
+trans_sys = TransformationSystem( alpha_z, beta_z, cs );
 fs        = NonlinearForcingTerm( cs, N );
 
-%% ---- [1B] Learning Weights via Locally Weighted Regression or Least-Square
+%%  -- (1B) Learning the weights via Linear Least Square Regression
 
-% Assume that we have P sample points for the minimum jerk trajectory.
+% P sample points for the minimum jerk trajectory.
+P = 100;
+
+% Equal Sampling along time with duration D
+t_P = linspace( 0.0, D, P );
+
+
+[ y_des, dy_des, ddy_des ] = min_jerk_traj( y0d, gd, D, t_P, 0 );
+
+
+% Calculating the required Nonlinear Forcing Term
+f_arr   = trans_sys.get_desired( y_des, dy_des, ddy_des, gd );
+
+% The phi matrix 
+Phi_mat = zeros( P, N );
+
+% Interating along the sample points
+for i = 1 : P 
+    t = t_P( i );
+    Phi_mat( i, : ) = fs.calc_multiple_ith( t, 1:N )/ fs.calc_whole_at_t( t ) * cs.calc( t );
+end
+
+% Scaling matrix
+% There are two options, from Koutras and Doulgeri (2020) and the Ijspeert et al. (2013).
+% For this time, we use Ijspeert et al. (2013).
+scl = diag( gd - y0d );
+w_arr = transpose( ( Phi_mat' * Phi_mat )^(-1) * Phi_mat' * f_arr' * scl^(-1) );
+
+%%  -- (1C) Rollout Generating a Full trajectory with the Transformation System
+
+% Rollout with the weight array 
+t0i   = 0.0;
+T     = 8.0;
+Nt    = 10000;
+t_arr = linspace( 0, T, Nt+1 ); 
+
+% The new y0, z0, g
+y0 = y0d;
+z0 = zeros( n, 1 );
+g  = zeros( n, 1 );
+
+input_arr_discrete = fs.calc_forcing_term( t_arr( 1:end-1 ), w_arr, t0i, diag( g - y0 ) );
+
+[ y_arr, ~, dy_arr ] = trans_sys.rollout( y0, z0, g, input_arr_discrete, t0i, t_arr  );
+
+f = figure( ); a = axes( 'parent', f );
+hold( a, 'on' )
+plot( a, t_arr, y_arr' , 'linewidth', 3 )
+plot( a, t_arr, dy_arr', 'linewidth', 3 )
+
+%% -- (1D) Saving the Weights and Parameters of the Learned Trajectory 
+
+% All the necessary data 
+data           = struct;
+data.alpha_z   = alpha_z;
+data.beta_z    = beta_z;
+data.cs        = cs;
+data.trans_sys = trans_sys;
+data.fs        = fs;
+data.g         = g;
+data.w_arr     = w_arr;
+
+% save( './learned_parameters/min_jerk_traj' , 'data' );
+
+%% (2-) Imitation Learning for Actual Learning Trajectory
+%%  --  (2A) Definition of Trajectories
+
+t_sym = sym( 't_sym' );
+
+l  = 2;
+D  = 3.0;
+v  = l/D;        
+tn = t_sym/D;        
+
+% Position
+px = 0;
+py =   l * ( 10 * tn^3 - 15 * tn^4 + 6 * tn^5 );
+pz = 0.5 * ( cos( 2*2*pi/l * ( l * tn ) ) - 1 );
+
+% Velocity
+dpx = diff( px, t_sym );
+dpy = diff( py, t_sym );
+dpz = diff( pz, t_sym );
+
+% Acceleration
+ddpx = diff( dpx, t_sym );
+ddpy = diff( dpy, t_sym );
+ddpz = diff( dpz, t_sym );
+
+% Make the trajectory as a MATLAB function
+% Saving these elements as symbolic array.
+p_func   = matlabFunction( [   px;   py;   pz ] );
+dp_func  = matlabFunction( [  dpx,  dpy,  dpz ] );
+ddp_func = matlabFunction( [ ddpx, ddpy, ddpz ] );
+
+% Extract the sample points and learn the weights
+% Assume that we have P sample points for
 P = 100;
 
 % Equal Sampling along time with duration D
 t_P = linspace( 0.0, D, P );
 
 % Desired Trajectories
-  y_des_arr = zeros( 1, P );
- dy_des_arr = zeros( 1, P );
-ddy_des_arr = zeros( 1, P );
-
-for j = 1 : P
-    [ y_des, dy_des, ddy_des ] = min_jerk_traj( t_P( j ), q0i, q0f, D, 0 );
-      y_des_arr( j ) =   y_des;
-     dy_des_arr( j ) =  dy_des;
-    ddy_des_arr( j ) = ddy_des;
-end
-
-% Learning the N weights based on Locally Weighted Regression
-w_arr_LWR = zeros( 1, N );
-
-% Calculating a_arr and f_arr that can be calculated
-a_arr = ( g - y0 ) * cs.calc( t_P );
-f_arr = trans_sys.get_desired( y_des_arr, dy_des_arr, ddy_des_arr, g );
-
-% Iterating over the arrays
-for i = 1: N
-    phi_arr = fs.calc_ith( t_P, i );    
-    w_arr_LWR( i ) = sum( a_arr .* phi_arr .* f_arr ) / sum( a_arr .* phi_arr .* a_arr );
-end
-
-a1 = subplot( 2, 1, 1 );
-hold( a1, 'on' );
-
-% Plotting the Desired Trajectory
-plot( a1, t_P,   y_des_arr );
-plot( a1, t_P,  dy_des_arr );
-plot( a1, t_P, ddy_des_arr );
- 
-a2 = subplot( 2, 1, 2 );
-hold( a2, 'on' );
-for i = 1 : N
-    plot( a2, t_P, fs.calc_whole_weighted_at_t( t_P, w_arr_LWR ) )
-end
-
-% One can also learn the weights by simple least-square solution
-% It is simply f_arr = A w problem, where
-% f_arr is simply the array above. 
-phi_mat = zeros( P, N );
+  y_des_arr = zeros( 3, P );
+ dy_des_arr = zeros( 3, P );
+ddy_des_arr = zeros( 3, P );
 
 for i = 1 : P
-    phi_sum = fs.calc_whole_at_t( t_P( i ) );
-    for j = 1 : N
-        phi_mat( i, j ) = fs.calc_ith( t_P( i ), j ) / phi_sum * ( g - y0 ) * cs.calc( t_P( i ) );
-    end
+      y_des_arr( :, i ) =   p_func( t_P( i ) );
+     dy_des_arr( :, i ) =  dp_func( t_P( i ) );
+    ddy_des_arr( :, i ) = ddp_func( t_P( i ) );
 end
 
-% Get w_arr with Least square solution
-w_arr_LSS = ( phi_mat' * phi_mat )^(-1) * phi_mat' * f_arr';
-w_arr_LSS = w_arr_LSS';
+% Get the initial and final position
+alpha_s = 2.0;
+alpha_z = 10.0;
+beta_z  = 1/4 * alpha_z;
+y0_d    = p_func( 0 );
+g_d     = p_func( D );
+z0      = dp_func( 0 )/D;
 
-%% ---- [1C] Rollout Generating a Full trajectory with the Transformation System
+% Learn the weights using Least-square method
+% Define the three elements of DMP
+N = 100;
+cs        = CanonicalSystem( 'discrete', D, alpha_s );
+trans_sys = TransformationSystem( alpha_z, beta_z, cs );
+fs        = NonlinearForcingTerm( cs, N );
 
-trans_sys.reset( )
+%%  --  (2B) Learning the weights of the trajectory with LLS
 
-% The time step of the simulation and its number of iteration
-dt = 1e-3;
-Nt = 2000;
+% Calculate the f_array 
+f_arr = trans_sys.get_desired( y_des_arr, dy_des_arr, ddy_des_arr, g_d ); 
 
-% The total time and its time array
-T     = dt * Nt;
-t_arr = dt * (0:(Nt-1));
+% Learning the weights with least-square method 
+n = length( g_d );
 
-% For plotting and saving the data
-y_arr  = zeros( 1, Nt );
-z_arr  = zeros( 1, Nt );
-dz_arr = zeros( 1, Nt );
+% A More simple calculation of the weights 
+Phi_mat = zeros( P, N );
 
-y_arr( 1 ) = y0;
-z_arr( 1 ) = z0;
+for i = 1 : P 
+    Phi_mat( i, : ) = fs.calc_ith_arr( t_P( i ), 1:N )/ fs.calc_whole_at_t( t_P( i ) ) * cs.calc( t_P( i ) );
+end
 
-t = 0;
-f_input_arr = zeros( 1, Nt );
+tmp = 1./( g - y0 );
+tmp( isinf( tmp ) | isnan( tmp ) ) = 0; 
 
-% One can also check spatial temporance from the weight
-% for tau = 0.5:0.1:2.0
-% for   g = 0.5:0.1:2.0
+w_arr_LSS = transpose( (Phi_mat' * Phi_mat)^(-1) * Phi_mat' * f_arr' * diag( tmp ) );
 
-for i = 0 : (Nt-1)
+
+for k = 1 : n
+    phi_mat = zeros( P, N );
     
-    % Before conducting the movement
-    % Maintaining that posture
-    if t <= t0i
-        y_arr( i + 1 ) = y0;
-        z_arr( i + 1 ) = z0;
-        
-    % During the movement
-    elseif t0i <= t
-        
-        if t<= t0i + D
-
-            % taking off the initial time offset
-            t_tmp = t - t0i;
-
-            % Calculating the input from the weights
-            % First, check if whole activation value is 0
-            phi_sum = fs.calc_whole_at_t( t_tmp );
-            
-            f_input = 0;
-
-            if phi_sum ~= 0
-                f_input = fs.calc_whole_weighted_at_t( t_tmp, w_arr_LWR )/phi_sum;
-                f_input = f_input*(g-y0)*cs.calc( t_tmp );
-            end
-            
-        else
-            f_input = 0; 
+    for i = 1 : P
+        for j = 1 : N
+            phi_mat( i, j ) = fs.calc_ith( t_P( i ), j ) / fs.calc_whole_at_t( t_P( i ) ) * cs.calc( t_P( i ) );
         end
-
-        f_input_arr( i ) = f_input; 
-        [ y, z, dy, dz ] = trans_sys.step( g, f_input, dt );
-        y_arr(  i + 1 ) = y;
-        z_arr(  i + 1 ) = z;
-        dz_arr( i + 1 ) = dz;        
     end
+    
+    % Get w_arr with Least square solution
+    w_arr_LSS( k, : ) = transpose( ( phi_mat' * phi_mat )^(-1) * phi_mat' * f_arr( k, : )' );
 
-    t = t + dt;
 end
 
-subplot( 3, 1, 1 )
-hold on
-plot( t_arr, y_arr, 'linewidth', 3 )
-plot( t_P, y_des_arr, 'linestyle', '--', 'linewidth', 5, 'color', 'k' )
-set( gca, 'xlim', [0, T], 'fontsize', 30, 'xticklabel', {} )
-ylabel( 'Pos. (-)' )
+%%  --  (2C) Rollout with the weighting matrices
 
-subplot( 3, 1, 2 )
-hold on
-plot( t_arr, z_arr, 'linewidth', 3 )
-plot(   t_P, dy_des_arr, 'linestyle', '--', 'linewidth', 5, 'color', 'k' )
-set( gca, 'xlim', [0, T], 'fontsize', 30, 'xticklabel', {} )
-ylabel( 'Vel. (-)' )
+% Rollout with the weight array 
+t0i = 1.0;
+T   = 5;
+N   = 3000;
+t_arr = linspace( 0, T, N+1 ); 
 
-subplot( 3, 1, 3 )
-hold on
-plot( t_arr, dz_arr, 'linewidth', 3 )
-plot(   t_P, ddy_des_arr, 'linestyle', '--', 'linewidth', 5, 'color', 'k' )
-set( gca, 'xlim', [0, T], 'fontsize', 30, 'xtick', 0:0.5:T)
-xlabel( 'Time (sec)' )
-ylabel( 'Acc. (-)' )
+y0_new = y0_d;
+z0_new = zeros( n, 1 );
 
+f = figure( ); a = axes( 'parent', f );
+hold on
+
+rot1 = roty( 30 );
+tmp_scl = 1.0;
+
+for angle = 0:60:360
+    g_new = tmp_scl * rotz( angle ) * rot1* g_d;
+    input_arr = fs.calc_forcing_term( t_arr( 1:end-1 ), w_arr_LSS, t0i, tmp_scl * rotz( angle ) * rot1 );
+    [ y_arr, z_arr, dy_arr ] = trans_sys.rollout( y0_new, z0_new, g_new, input_arr, t0i, t_arr  );    
+    plot3( a, y_arr( 1, : ), y_arr( 2, : ), y_arr( 3, : ), 'linewidth', 3, 'color', 'k' )
+end
+
+tmp_scl = 2.0;
+rot1 = roty( 60 );
+y0_new = [ 1.0, 1.0, 1.0 ]';
+for angle = 0:60:360
+    g_new = tmp_scl * rotz( angle ) * rot1* g_d;
+    input_arr = fs.calc_forcing_term( t_arr( 1:end-1 ), w_arr_LSS, t0i, tmp_scl * rotz( angle ) * rot1 );
+    [ y_arr, z_arr, dy_arr ] = trans_sys.rollout( y0_new, z0_new, g_new, input_arr, t0i, t_arr  );    
+    plot3( a, y_arr( 1, : ), y_arr( 2, : ), y_arr( 3, : ), 'linewidth', 3, 'color', 'b' )
+end
+
+axis equal
+lw = 2;
+set( a, 'view',  [38.8448, 16.6583], 'xlim', [-lw, lw], 'ylim', [-lw, lw], 'zlim', [-lw, lw] )
+
+%% =======================================================
+%% (3-) Imitation Learning for Oscillation
+%%  -- (1A) Oscillation
+
+% The number of Basis Function for the Nonlinear Forcing Term
+N = 20;
+
+% Parameters for the Canonical System
+T_p     = 2.0;
+tau     = T_p/(2*pi);
+alpha_s =  1.0;
+
+% Parameters of the Transformation System
+alpha_z   = 100.0;
+beta_z    = 0.5 * alpha_z;
+
+cs        = CanonicalSystem( 'rhythmic', tau, alpha_s );
+trans_sys = TransformationSystem( alpha_z, beta_z, cs );
+fs        = NonlinearForcingTerm( cs, N );
+
+% P sample points for the minimum jerk trajectory.
+P = 200;
+
+% Equal Sampling along time with duration D
+t_P = linspace( 0.0, T_p, P );
+
+% Desired Trajectories, position, velocity and acceleration.
+  y_des = zeros( 2, P );
+ dy_des = zeros( 2, P );
+ddy_des = zeros( 2, P );
+
+  y_des( 1, : ) = cos( pi * t_P );
+  y_des( 2, : ) = sin( pi * t_P );
+
+ dy_des( 1, : ) = -pi * sin( pi * t_P );
+ dy_des( 2, : ) =  pi * cos( pi * t_P );
+
+ddy_des( 1, : ) = -pi^2 * cos( pi * t_P );
+ddy_des( 2, : ) = -pi^2 * sin( pi * t_P );
+
+% Calculating the required Nonlinear Forcing Term
+f_arr   = trans_sys.get_desired( y_des, dy_des, ddy_des, zeros( 2, 1) );
+
+% The phi matrix 
+Phi_mat = zeros( P, N );
+
+% Interating along the sample points
+for i = 1 : P 
+    t = t_P( i );
+    Phi_mat( i, : ) = fs.calc_multiple_ith( t, 1:N )/ fs.calc_whole_at_t( t );
+end
+
+% Scaling matrix
+% There are two options, from Koutras and Doulgeri (2020) and the Ijspeert et al. (2013).
+% For this time, we use Ijspeert et al. (2013).
+w_arr = transpose( ( Phi_mat' * Phi_mat )^(-1) * Phi_mat' * f_arr' );
+
+% Rollout with the weight array 
+t0i   = 0.0;
+T     = 4*T_p;
+Nt    = 10000;
+t_arr = linspace( 0, T, Nt+1 ); 
+
+% The new y0, z0, g
+y0 =  y_des( :, 1 );
+z0 = dy_des( :, 1 )*tau;
+g  = zeros( 2, 1 );
+
+input_arr_rhythmic = fs.calc_forcing_term( t_arr( 1:end-1 ), w_arr, t0i, eye( 2 ) );
+
+[ y_arr, z_arr, dy_arr ] = trans_sys.rollout( y0, z0, g, input_arr_rhythmic, t0i, t_arr  );
+
+f = figure( ); a = axes( 'parent', f );
+hold( a, 'on' )
+plot( a, y_arr( 1, : ), y_arr( 2, : ) )
+axis equal
+
+%%  -- (2B) Mixing the Two Movement Primitives
+
+alpha = 0:0.1:1.0;
+f = figure( ); a = axes( 'parent', f );
+hold on, axis equal
+for i = 1:length( alpha )
+    a = alpha( i );
+    [ y_arr, z_arr, dy_arr ] = trans_sys.rollout( a*y0+(1-a)*y0d, a*z0, g, a * input_arr_rhythmic + (1-a)*input_arr_discrete, t0i, t_arr  );
+    plot( 2*i + y_arr( 1, : ), y_arr( 2, : ) )
+end

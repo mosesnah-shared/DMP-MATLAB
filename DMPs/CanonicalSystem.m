@@ -1,16 +1,20 @@
-classdef CanonicalSystem < handle
+ classdef CanonicalSystem < handle
     
     properties       
         
-        % Type of the canonical system, either discrete (0), rhythmic (1)
+        % Type of the Canonical System 
+        % Either discrete (0), rhythmic (1)
         type 
         
-        % The time constant of the canonical system
+        % The Time constant of the Sanonical System
         % For Discrete movement: Duration of the movement
-        % For Rhythmic movement: Period of the movement divided by 2pi
+        % For Rhythmic movement:   Period of the movement divided by 2pi
         tau 
         
-        % Must be Positive value
+        % For Discrete movement: Positive value
+        % The Canonical System for discrete movement is governed by 
+        % the following differential equation:
+        % s(t) = exp( -alpha_s/tau t );
         alpha_s
     end
 
@@ -26,21 +30,17 @@ classdef CanonicalSystem < handle
             % -------           
             %   Moses C. Nah    mosesnah@mit.edu
             % 
-            %
             % Parameters
             % ----------
-            %   (1) type - 'discrete' or 'rhythmic'
+            %   (1) type - Either 'discrete' or 'rhythmic'
             % 
-            %   (2) tau - The time constant of the canonical system
-            %             For 'discrete' movement: Duration of the movement
-            %             For 'rhythmic' movement: Period of the movement divide by 2pi
+            %   (2) tau  - The time constant of the canonical system
             %
-            %   (3) alpha_s - positive constant, if 'rhythmic', then 
-            %                 value is ignored
+            %   (3) alpha_s - positive constant. 
+            %                 If 'rhythmic', then value saved but ignored
             %
             % ===========================================================================
             
-            % Type input should be either 'discrete' or 'rhythmic'
             type = lower( type );
             assert( strcmp( type, "discrete" ) || strcmp( type, "rhythmic" ) )
             
@@ -51,43 +51,46 @@ classdef CanonicalSystem < handle
                 obj.type = 1;
             end
             
-            % Tau and alpha_s should be positive values
+            % Tau and alpha_s must be positive values
             assert( tau > 0 && alpha_s > 0 );
             obj.tau     = tau; 
             obj.alpha_s = alpha_s;
 
         end
 
-        function s = calc( obj, t )
+        function s_arr = calc( obj, t_arr )
             % ===========================================================================
             % Descriptions
             % ------------
-            %    Calculating the Canonical System
+            %    Calculating the Canonical System value at t
             %
             % Parameters
             % ----------
-            %   (1) t - time (sec)
-            %           accepts array input
+            %   (1) t_arr - Time array (sec), as a row vector.
             % 
             % Returns
             % -------
-            %   (1) s - the calculataion of s(t)
-            %           If discrete (0): s(t) = exp( -alpha_s/tau t )
-            %           If rhythmic (1): s(t) = mod( t/tau, 2pi )
+            %   (1) s_arr - Calculation of s(t)
+            %               If discrete (0): s(t) = exp( -alpha_s/tau t )
+            %               If rhythmic (1): s(t) = mod( t/tau, 2pi )
             %
             % ===========================================================================
             
+            % t_arr must be a row vector
+            assert( isrow( t_arr ) )
+
             % If Discrete
             if obj.type == 0 
-                s = exp( -obj.alpha_s/obj.tau * t );
+                s_arr = exp( -obj.alpha_s/obj.tau * t_arr );
 
             % If Rhythmic
             elseif obj.type == 1
-                s = mod( t/obj.tau, 2*pi );
+                s_arr = mod( t_arr/obj.tau, 2*pi );
 
             % IF not, then should be halted
             else
-                error( '[Wrong input] type should be either 0 or 1 but %d is defined as type', obj.type )
+                error( ['[Wrong Input] Type should be either 0 or 1 ...' ...
+                        ' but %d is defined as type'], obj.type )
             end
             
         end
