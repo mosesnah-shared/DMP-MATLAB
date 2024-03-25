@@ -126,7 +126,7 @@ data_d = tmp.data;
 % The three elements of discrete DMP
 cs_d        = CanonicalSystem( 'discrete', data_d.tau, data_d.alpha_s );
 fs_d        = NonlinearForcingTerm( cs_d, N );
-trans_sys_d = TransformationSystem( data_d.alpha_z, data_d.beta_z, cs1 );
+trans_sys_d = TransformationSystem( data_d.alpha_z, data_d.beta_z, cs_d );
 
 figure( ); 
 a1 = subplot( 1, 2, 1 );
@@ -136,7 +136,7 @@ offset_arr = 10 * [ 0.2, 0.46, 0.9, 1.7, 2.0, 2.4, 2.8, 3.2];
 
 % The Parameters for Forward Simulation
 t0i   = 0.0;
-T     = data_d.tau;
+T     = data_d.tau*2;
 dt    = 1e-4;
 t_arr = 0:dt:T;
 
@@ -187,7 +187,7 @@ for i = 1 : length( scl_arr )
     scl = scl_arr( i );
 
     % Calculate the nonlinear forcing term for discrete movement and rollout
-    input_arr = fs2.calc_forcing_term( t_arr( 1:end-1 ), data_r.weight, t0i, eye( 2 ) );
+    input_arr = fs_r.calc_forcing_term( t_arr( 1:end-1 ), data_r.weight, t0i, eye( 2 ) );
    
     % initial position
     y0 = data_r.p_init + [off;0];
@@ -321,7 +321,6 @@ end
 % For rhythmic movement, load the data
 tmp  = load( '../learned_parameters/rhythmic/heart.mat' );
 data = tmp.data;
-
 
 
 %% (1Ac) [Figure 1a] Temporal Scaling 
@@ -635,7 +634,6 @@ hold on
 plot( a3, p_data_arr( 1, :, 1 ) + xy_off( 1, 1 ), p_data_arr( 2, :, 1 ) + xy_off( 2, 1 ), 'linewidth', 3, 'color', 0.3*ones(1,3), 'linestyle', ':' )
 plot( a3, p_data_arr( 1, :, 2 ) + xy_off( 1, 2 ), p_data_arr( 2, :, 2 ) + xy_off( 2, 2 ), 'linewidth', 3, 'color', 0.3*ones(1,3), 'linestyle', ':' )
 plot( a3, p_data_arr( 1, :, 3 ) + xy_off( 1, 3 ), p_data_arr( 2, :, 3 ) + xy_off( 2, 3 ), 'linewidth', 3, 'color', 0.3*ones(1,3), 'linestyle', ':' )
-
 
 % The Three elements of DMP
 cs        = CanonicalSystem( 'discrete', data.tau, data.alpha_s );
