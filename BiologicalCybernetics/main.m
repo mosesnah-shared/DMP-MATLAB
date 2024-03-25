@@ -36,7 +36,7 @@ t_arr = 0:dt:T;
 
 % Calculate the nonlinear forcing term for discrete movement and rollout
 input_arr = fs1.calc_forcing_term( t_arr( 1:end-1 ), data.weight, t0i, eye( 2 ) );
-[ y_arr, ~, ~ ] = trans_sys1.rollout( zeros( 2, 1 ), zeros( 2, 1 ), data.goal, input_arr, t0i, t_arr  );  
+[ y_arr, ~, ~ ] = trans_sys1.rollout( zeros( 2, 1 ), zeros( 2, 1 ), zeros( 2, 1 ), data.alpha_z*data.beta_z*data.goal+input_arr, t0i, t_arr  );  
 
 % Drawing the plots
 f = figure( ); 
@@ -86,7 +86,8 @@ Nt    = length( t_arr );
 
 % Calculate the nonlinear forcing term for rhythmic movement and rollout
 input_arr2 = fs2.calc_forcing_term( t_arr( 1:end-1 ), data.weight , t0i, eye( 2 ) );
-[ y_arr2, ~, ~ ] = trans_sys2.rollout( data.p_init, zeros( 2, 1 ), [ 0; 0.8 ], input_arr2, t0i, t_arr  );
+off = [ 0.0; 0.8 ];
+[ y_arr2, ~, ~ ] = trans_sys2.rollout( data.p_init + off , data.dp_init*data.tau, zeros( 2, 1 ), data.alpha_z*data.beta_z*(data.goal+off)+input_arr2, t0i, t_arr  );
 
 a2 = subplot( 3, 2, 2 );
 plot( t_arr, cs2.calc( t_arr ), 'linewidth', 4, 'color', c_orange);
@@ -111,6 +112,279 @@ ylabel( '$Y$ (m)', 'fontsize', 40 )
 axis equal
 
 fig_save( f, './images/fig1' )
+
+%% (1Aa) [Figure 1a] Spatial Scaling
+
+clear data*, close all; clc;
+% Load the A alphabet 
+tmp  = load( '../learned_parameters/discrete/A_loose.mat' );
+data_d = tmp.data;
+
+% The number of basis functions N
+[ ~, N ] = size( data_d.weight );
+
+% The three elements of discrete DMP
+cs_d        = CanonicalSystem( 'discrete', data_d.tau, data_d.alpha_s );
+fs_d        = NonlinearForcingTerm( cs_d, N );
+trans_sys_d = TransformationSystem( data_d.alpha_z, data_d.beta_z, cs1 );
+
+figure( ); 
+a1 = subplot( 1, 2, 1 );
+hold on; axis equal
+scl_arr = [ 0.3, 0.5, 0.7, 0.9, 1.0, 1.2, 1.5, 2.0 ];
+offset_arr = 10 * [ 0.2, 0.46, 0.9, 1.7, 2.0, 2.4, 2.8, 3.2];
+
+% The Parameters for Forward Simulation
+t0i   = 0.0;
+T     = data_d.tau;
+dt    = 1e-4;
+t_arr = 0:dt:T;
+
+for i = 1 : length( scl_arr )
+    scl = scl_arr( i );
+    off = offset_arr( i );
+
+    % Calculate the nonlinear forcing term for discrete movement and rollout
+    input_arr = fs_d.calc_forcing_term( t_arr( 1:end-1 ), data_d.weight, t0i, eye( 2 ) );
+   
+    % initial position
+    y0 = [off;0];
+    g  = scl*( data_d.goal );
+    % Traditional
+    % [ y_arr, ~, ~ ] = trans_sys1.rollout( y0, data.z0, g,scl*input_arr, t0i, t_arr  );  
+    [ y_arr, ~, ~ ] = trans_sys_d.rollout( y0, data_d.z0*data_d.tau, zeros( 2, 1 ), scl*input_arr +data_d.alpha_z*data_d.beta_z*(g+y0), t0i, t_arr  );  
+    % New one
+
+    plot( a1, y_arr( 1, : ), y_arr( 2,  : ), 'color', 'k' )
+end
+
+
+a2 = subplot( 1, 2, 2 );
+hold on; axis equal
+
+% For rhythmic movement, load the data
+tmp  = load( '../learned_parameters/rhythmic/heart.mat' );
+data_r = tmp.data;
+
+[ ~, N ] = size( data_r.weight );
+
+% The three elements of rhythmic DMP
+% Note that this definition of the Canonical System is the simple linear function, 
+% as we don't have a network of rhythmic Canonical System
+cs_r        = CanonicalSystem( 'rhythmic', data_r.tau, 1.0 );
+fs_r        = NonlinearForcingTerm( cs_r, N );
+trans_sys_r = TransformationSystem( data_r.alpha_z, data_r.beta_z, cs_r );
+
+% The Parameters for Forward Simulation
+t0i   = 0.0;
+T     = data_r.tau*2*pi;
+dt    = 1e-4;
+t_arr = 0:dt:T;
+
+off = 0;
+
+for i = 1 : length( scl_arr )
+    scl = scl_arr( i );
+
+    % Calculate the nonlinear forcing term for discrete movement and rollout
+    input_arr = fs2.calc_forcing_term( t_arr( 1:end-1 ), data_r.weight, t0i, eye( 2 ) );
+   
+    % initial position
+    y0 = data_r.p_init + [off;0];
+    g  = y0 + scl*( data_r.goal - data_r.p_init );
+    % Traditional
+    % [ y_arr, ~, ~ ] = trans_sys1.rollout( y0, data.z0, g,scl*input_arr, t0i, t_arr  );  
+    [ y_arr, ~, ~ ] = trans_sys_r.rollout( y0, data_r.dp_init*data_r.tau*scl, zeros( 2, 1 ), scl*input_arr+data_r.alpha_z*data_r.beta_z*g, t0i, t_arr  );  
+
+    plot( a2, y_arr( 1, : ), y_arr( 2,  : ), 'color', 'k' )
+end
+
+
+
+%% (1Aa) [Figure 1b] Rotational Scaling
+
+
+clear data*, close all; clc;
+% Load the A alphabet 
+tmp  = load( '../learned_parameters/discrete/A_loose.mat' );
+data_d = tmp.data;
+
+% The number of basis functions N
+[ ~, N ] = size( data_d.weight );
+
+% The three elements of discrete DMP
+cs_d        = CanonicalSystem( 'discrete', data_d.tau, data_d.alpha_s );
+fs_d        = NonlinearForcingTerm( cs_d, N );
+trans_sys_d = TransformationSystem( data_d.alpha_z, data_d.beta_z, cs1 );
+
+figure( ); 
+a1 = subplot( 1, 2, 1 );
+hold on; axis equal
+ang_arr = linspace( 0, 2*pi, 6 );
+ang_arr = ang_arr( 1:end-1 );
+
+% The Parameters for Forward Simulation
+t0i   = 0.0;
+T     = data_d.tau;
+dt    = 1e-4;
+t_arr = 0:dt:T;
+
+for i = 1 : length( ang_arr )
+
+    ang = ang_arr( i );
+
+    % Calculate the nonlinear forcing term for discrete movement and rollout
+    input_arr = fs_d.calc_forcing_term( t_arr( 1:end-1 ), data_d.weight, t0i, eye( 2 ) );
+ 
+    % Rotation matrices 
+    R = [ cos( ang ), -sin( ang );
+          sin( ang ),  cos( ang )];
+
+    % initial position
+    y0 = R*[10;0];
+    g  = y0 + scl*R*( data_d.goal );
+
+    [ y_arr, ~, ~ ] = trans_sys_d.rollout( y0, data_d.tau * data_d.z0, zeros( 2, 1 ), R*scl*input_arr + data_d.alpha_z*data_d.beta_z*g, t0i, t_arr  );  
+    % New one
+
+    plot( a1, y_arr( 1, : ), y_arr( 2,  : ), 'color', 'k' )
+end
+
+
+a2 = subplot( 1, 2, 2 );
+hold on; axis equal
+
+% For rhythmic movement, load the data
+tmp  = load( '../learned_parameters/rhythmic/heart.mat' );
+data_r = tmp.data;
+
+[ ~, N ] = size( data_r.weight );
+
+% The three elements of rhythmic DMP
+% Note that this definition of the Canonical System is the simple linear function, 
+% as we don't have a network of rhythmic Canonical System
+cs_r        = CanonicalSystem( 'rhythmic', data_r.tau, 1.0 );
+fs_r        = NonlinearForcingTerm( cs_r, N );
+trans_sys_r = TransformationSystem( data_r.alpha_z, data_r.beta_z, cs_r );
+
+% The Parameters for Forward Simulation
+t0i   = 0.0;
+T     = data_r.tau*2*pi;
+dt    = 1e-4;
+t_arr = 0:dt:T;
+
+for i = 1 : length( ang_arr )
+    ang = ang_arr( i );
+
+    % Rotation matrices 
+    R = [ cos( ang ), -sin( ang );
+          sin( ang ),  cos( ang )];
+
+    % initial position
+    y0 = R*[50;0];
+    g  = y0 + scl*R*( data_r.goal -data_r.p_init );
+
+    % Calculate the nonlinear forcing term for discrete movement and rollout
+    input_arr = fs_r.calc_forcing_term( t_arr( 1:end-1 ), data_r.weight, t0i, eye( 2 ) );
+ 
+    [ y_arr, ~, ~ ] = trans_sys_r.rollout( y0, data_r.tau*data_r.dp_init, zeros( 2, 1 ), R*scl*input_arr + data_r.alpha_z*data_r.beta_z*g, t0i, t_arr  );  
+    % New one
+
+    plot( a2, y_arr( 1, : ), y_arr( 2,  : ), 'color', 'k' )
+end
+
+
+scl = 1;
+for i = 1 : length( ang_arr )
+    ang = ang_arr( i );
+
+    % Calculate the nonlinear forcing term for discrete movement and rollout
+    input_arr = fs1.calc_forcing_term( t_arr( 1:end-1 ), data_r.weight, t0i, eye( 2 ) );
+   
+    % Rotation matrices 
+    R = [ cos( ang ), -sin( ang );
+          sin( ang ),  cos( ang )];
+
+    % initial position
+    y0 = R*[10;0];
+    g  = y0 + scl*R*( data.goal );
+
+    % Traditional
+    % [ y_arr, ~, ~ ] = trans_sys1.rollout( y0, data.z0, g, R*scl*input_arr, t0i, t_arr  );  
+
+    % Newone
+    [ y_arr, ~, ~ ] = trans_sys1.rollout( y0, data.z0, zeros( 2, 1 ), R*scl*input_arr + data.alpha_z*data.beta_z*g, t0i, t_arr  );  
+
+    plot( a2, y_arr( 1, : ), y_arr( 2,  : ), 'color', 'k' )
+end
+
+% For rhythmic movement, load the data
+tmp  = load( '../learned_parameters/rhythmic/heart.mat' );
+data = tmp.data;
+
+
+
+%% (1Ac) [Figure 1a] Temporal Scaling 
+
+clear data*, close all; clc;
+% Load the A alphabet 
+tmp  = load( '../learned_parameters/discrete/A_loose.mat' );
+data = tmp.data;
+
+% The number of basis functions N
+[ ~, N ] = size( data.weight );
+
+% The three elements of discrete DMP
+cs1        = CanonicalSystem( 'discrete', data.tau, data.alpha_s );
+fs1        = NonlinearForcingTerm( cs1, N );
+trans_sys1 = TransformationSystem( data.alpha_z, data.beta_z, cs1 );
+
+% First, generate the trajectories
+tscl_arr = [ 0.3, 0.5, 1.0, 1.5, 2.0 ];
+
+% The Parameters for Forward Simulation
+t0i   = 0.0;
+T     = data.tau;
+dt    = 1e-2;
+t_arr = 0:dt:T*3;
+
+y_data_arr = zeros( 2, length( t_arr ), length( tscl_arr ) );
+
+% Calculate the nonlinear forcing term for discrete movement and rollout
+input_arr = fs1.calc_forcing_term( t_arr( 1:end-1 ), data.weight, t0i, eye( 2 ) );
+
+for i = 1 : length( tscl_arr )
+    tscl = tscl_arr( i );
+
+    % Rollout for data
+    cs_tmp        = CanonicalSystem( 'discrete', tscl*data.tau, data.alpha_s );
+    fs_tmp        = NonlinearForcingTerm( cs_tmp, N );
+    trans_sys_tmp = TransformationSystem( data.alpha_z, data.beta_z, cs_tmp );
+        
+    % Calculate the nonlinear forcing term for discrete movement and rollout
+    input_arr = fs_tmp.calc_forcing_term( t_arr( 1:end-1 ), data.weight, t0i, eye( 2 ) );
+  
+    [ y_arr, ~, ~ ] = trans_sys_tmp.rollout( zeros( 2, 1 ), tscl*data.z0, data.goal, input_arr, t0i, t_arr  );  
+
+    y_data_arr( :, :, i ) = y_arr;
+    
+end
+
+idx_arr = [ 50, 150, 250, 400, 500, 600, 700, 800, 1000, 1500 ];
+offset  = 10*(1:length(idx_arr));
+% Going through the iterations
+for i = 1: length( tscl_arr )
+    a = subplot( length( tscl_arr ), 1, i );
+    hold on
+    y_tmp = y_data_arr( :, :, i );
+    for j = 1 : length( idx_arr )
+        idx = idx_arr( j );
+        off = offset( j );
+        plot( a, off + y_tmp( 1, 1:idx ), y_tmp( 2, 1:idx ), 'linewidth', 5 )
+    end
+    set( a, 'xlim', [0, max(offset)+10])
+end
+
 
 %% (1B) [Figure 2a] Sequencing Discrete Movements - Drawing Individual Images
 
