@@ -42,16 +42,15 @@ input_arr = fs1.calc_forcing_term( t_arr( 1:end-1 ), data.weight, t0i, eye( 2 ) 
 f = figure( ); 
 a1 = subplot( 3, 2, 1 );
 plot( a1, t_arr, cs1.calc( t_arr ), 'linewidth', 4, 'color',  c_blue );
-set(  a1, 'xticklabel', {}, 'yticklabel', {}, 'xlim', [0,16] )
-xlabel( '$t$ (s)', 'fontsize', 40 )
+set(  a1,'xlim', [0,6], 'fontsize', 30, 'xtick', [0:2:6], 'ytick', [0,1],'ylim', [0, 1] )
 ylabel( '$s_d(t)$', 'fontsize', 40 )
 
 a3 = subplot( 3, 2, 3 );
 hold on
 plot( a3, t_arr( 1:end-1 ), input_arr( 1, : ), 'linewidth', 4, 'linestyle', '-' , 'color', c_blue );
 plot( a3, t_arr( 1:end-1 ), input_arr( 2, : ), 'linewidth', 4, 'linestyle', '-' , 'color', c_blue );
-set(  a3, 'xticklabel', {}, 'yticklabel', {}, 'xlim', [0,6.0] )
-xlabel( '$t$ (s)', 'fontsize', 40 )
+set(  a3, 'yticklabel', {}, 'xlim', [0,6.0], 'fontsize', 30, 'xtick', [0:2:6] )
+xlabel( '$t$', 'fontsize', 40 )
 ylabel( '$\mathbf{f}_d(t)$', 'fontsize', 40 )
 
 a5 = subplot( 3, 2, 5 );
@@ -59,10 +58,10 @@ hold on
 plot( a5, y_arr( 1, : ), y_arr( 2, : ), 'linewidth', 4, 'color', c_blue );
 scatter( a5, y_arr( 1,   1 ), y_arr( 2,   1 ), 500, 'filled',  'o', 'markerfacecolor', 'w', 'markeredgecolor', c_blue, 'linewidth', 4 )
 scatter( a5, y_arr( 1, end ), y_arr( 2, end ), 500, 'filled',  'd', 'markerfacecolor', 'w', 'markeredgecolor', c_blue, 'linewidth', 4 )
-set( a5, 'xticklabel', {}, 'yticklabel', {}, 'xlim', [-3, 9.5], 'ylim', [-1.5, 12.5] )
+set( a5, 'xticklabel', {},'yticklabel', {}, 'xlim', [-3, 9.5], 'ylim', [-1.5, 12.5] )
 axis equal
-xlabel( '$X$ (m)', 'fontsize', 40 )
-ylabel( '$Y$ (m)', 'fontsize', 40 )
+xlabel( '$X$', 'fontsize', 40 )
+ylabel( '$Y$', 'fontsize', 40 )
 
 % For rhythmic movement, load the data
 tmp  = load( '../learned_parameters/rhythmic/heart.mat' );
@@ -91,24 +90,23 @@ off = [ 0.0; 0.8 ];
 
 a2 = subplot( 3, 2, 2 );
 plot( t_arr, cs2.calc( t_arr ), 'linewidth', 4, 'color', c_orange);
-set( a2, 'xticklabel', {}, 'yticklabel', {}, 'xlim', [0,T] )
-xlabel( '$t$ (s)', 'fontsize', 40 )
+set( a2,  'xlim', [0,3], 'xtick', 0:1:3, 'fontsize', 30, 'ylim', [ 0, 2*pi], 'ytick', 2*pi*[0., 0.5, 1.0], 'yticklabel', {'0', '$\pi$', '$2\pi$'} )
 ylabel( '$s_r(t)$', 'fontsize', 40 )
 
 a4 = subplot( 3, 2, 4 );
 hold on
 plot( a4, t_arr( 1:end-1 ), input_arr2( 1, : ), 'linewidth', 4, 'linestyle', '-' , 'color', c_orange );
 plot( a4, t_arr( 1:end-1 ), input_arr2( 2, : ), 'linewidth', 4, 'linestyle', '-' , 'color', c_orange );
-set( a4, 'xticklabel', {}, 'yticklabel', {}, 'xlim', [0,T] )
-xlabel( '$t$ (s)', 'fontsize', 40 )
+set( a4, 'yticklabel', {}, 'xlim', [0,3], 'xtick', 0:1:3, 'fontsize', 30 )
+xlabel( '$t$', 'fontsize', 40 )
 ylabel( '$\mathbf{f}_r(t)$', 'fontsize', 40 )
 
 a6 = subplot( 3, 2, 6 );
 
 plot( a6, y_arr2( 1, 1:end-1 ), y_arr2( 2, 1:end-1 ), 'linewidth', 4, 'color', c_orange );
 set( a6, 'xticklabel', {}, 'yticklabel', {}, 'xlim', [-20,20], 'ylim',[-20,20])
-xlabel( '$X$ (m)', 'fontsize', 40 )
-ylabel( '$Y$ (m)', 'fontsize', 40 )
+xlabel( '$X$', 'fontsize', 40 )
+ylabel( '$Y$', 'fontsize', 40 )
 axis equal
 
 fig_save( f, './images/fig1' )
@@ -128,11 +126,11 @@ cs_d        = CanonicalSystem( 'discrete', data_d.tau, data_d.alpha_s );
 fs_d        = NonlinearForcingTerm( cs_d, N );
 trans_sys_d = TransformationSystem( data_d.alpha_z, data_d.beta_z, cs_d );
 
-figure( ); 
+f = figure( ); 
 a1 = subplot( 1, 2, 1 );
 hold on; axis equal
 scl_arr = [ 0.3, 0.5, 0.7, 0.9, 1.0, 1.2, 1.5, 2.0 ];
-offset_arr = 10 * [ 0.2, 0.46, 0.9, 1.7, 2.0, 2.4, 2.8, 3.2];
+offset_arr = 10 * [ 0.2, 0.46, 0.9, 1.45, 2.2, 3.0, 4.0, 5.2];
 
 % The Parameters for Forward Simulation
 t0i   = 0.0;
@@ -154,10 +152,17 @@ for i = 1 : length( scl_arr )
     % [ y_arr, ~, ~ ] = trans_sys1.rollout( y0, data.z0, g,scl*input_arr, t0i, t_arr  );  
     [ y_arr, ~, ~ ] = trans_sys_d.rollout( y0, data_d.z0*data_d.tau, zeros( 2, 1 ), scl*input_arr +data_d.alpha_z*data_d.beta_z*(g+y0), t0i, t_arr  );  
     % New one
+    if scl ~= 1
+        plot( a1, y_arr( 1, : ), y_arr( 2,  : ), 'color', c_blue, 'linewidth', 3 )
+    else
+        plot( a1, y_arr( 1, : ), y_arr( 2,  : ), 'color', c_blue, 'linewidth', 8 )
+    end
 
-    plot( a1, y_arr( 1, : ), y_arr( 2,  : ), 'color', 'k' )
+    scatter( a1, y_arr( 1,   1 ), y_arr( 2,   1 ), 300*scl, 'filled',  'o', 'markerfacecolor', 'w', 'markeredgecolor', c_blue, 'linewidth', 3 )
+    scatter( a1, y_arr( 1, end ), y_arr( 2, end ), 300*scl, 'filled',  'd', 'markerfacecolor', 'w', 'markeredgecolor', c_blue, 'linewidth', 3 )
+
 end
-
+set( a1, 'xlim', [ 1, 67 ], 'ylim', [-25, 41], 'xticklabel', {}, 'yticklabel', {})
 
 a2 = subplot( 1, 2, 2 );
 hold on; axis equal
@@ -196,13 +201,17 @@ for i = 1 : length( scl_arr )
     % [ y_arr, ~, ~ ] = trans_sys1.rollout( y0, data.z0, g,scl*input_arr, t0i, t_arr  );  
     [ y_arr, ~, ~ ] = trans_sys_r.rollout( y0, data_r.dp_init*data_r.tau*scl, zeros( 2, 1 ), scl*input_arr+data_r.alpha_z*data_r.beta_z*g, t0i, t_arr  );  
 
-    plot( a2, y_arr( 1, : ), y_arr( 2,  : ), 'color', 'k' )
+    if scl ~= 1
+        plot( a2, y_arr( 1, : ), y_arr( 2,  : ), 'color', c_orange, 'linewidth', 3 )
+    else
+        plot( a2, y_arr( 1, : ), y_arr( 2,  : ), 'color', c_orange, 'linewidth', 8 )
+    end
 end
 
-
+set( a2, 'xlim', [-33, 33 ], 'ylim', [-43, 23], 'xticklabel', {}, 'yticklabel', {} )
+fig_save( f, './images/fig1a' )
 
 %% (1Aa) [Figure 1b] Rotational Scaling
-
 
 clear data*, close all; clc;
 % Load the A alphabet 
@@ -215,9 +224,9 @@ data_d = tmp.data;
 % The three elements of discrete DMP
 cs_d        = CanonicalSystem( 'discrete', data_d.tau, data_d.alpha_s );
 fs_d        = NonlinearForcingTerm( cs_d, N );
-trans_sys_d = TransformationSystem( data_d.alpha_z, data_d.beta_z, cs1 );
+trans_sys_d = TransformationSystem( data_d.alpha_z, data_d.beta_z, cs_d );
 
-figure( ); 
+f = figure( ); 
 a1 = subplot( 1, 2, 1 );
 hold on; axis equal
 ang_arr = linspace( 0, 2*pi, 6 );
@@ -228,7 +237,7 @@ t0i   = 0.0;
 T     = data_d.tau;
 dt    = 1e-4;
 t_arr = 0:dt:T;
-
+scl = 2.5;
 for i = 1 : length( ang_arr )
 
     ang = ang_arr( i );
@@ -247,9 +256,15 @@ for i = 1 : length( ang_arr )
     [ y_arr, ~, ~ ] = trans_sys_d.rollout( y0, data_d.tau * data_d.z0, zeros( 2, 1 ), R*scl*input_arr + data_d.alpha_z*data_d.beta_z*g, t0i, t_arr  );  
     % New one
 
-    plot( a1, y_arr( 1, : ), y_arr( 2,  : ), 'color', 'k' )
-end
+    plot( a1, y_arr( 1, : ), y_arr( 2,  : ), 'color', c_blue )
 
+    scatter( a1, y_arr( 1,   1 ), y_arr( 2,   1 ), 200, 'filled',  'o', 'markerfacecolor', 'w', 'markeredgecolor', c_blue, 'linewidth', 3 )
+    scatter( a1, y_arr( 1, end ), y_arr( 2, end ), 200, 'filled',  'd', 'markerfacecolor', 'w', 'markeredgecolor', c_blue, 'linewidth', 3 )
+
+end
+set( a1, 'xlim', get( a1, 'xlim' ) + [-4, 2], 'ylim', get( a1, 'ylim' ) + [-3, 3], 'xticklabel',{},'yticklabel',{} )
+xlabel( a1, 'X (m)', 'fontsize', 40)
+ylabel( a1, 'Y (m)', 'fontsize', 40)
 
 a2 = subplot( 1, 2, 2 );
 hold on; axis equal
@@ -272,7 +287,7 @@ t0i   = 0.0;
 T     = data_r.tau*2*pi;
 dt    = 1e-4;
 t_arr = 0:dt:T;
-
+scl = 0.6;
 for i = 1 : length( ang_arr )
     ang = ang_arr( i );
 
@@ -281,7 +296,7 @@ for i = 1 : length( ang_arr )
           sin( ang ),  cos( ang )];
 
     % initial position
-    y0 = R*[50;0];
+    y0 = R*[15;0];
     g  = y0 + scl*R*( data_r.goal -data_r.p_init );
 
     % Calculate the nonlinear forcing term for discrete movement and rollout
@@ -290,98 +305,135 @@ for i = 1 : length( ang_arr )
     [ y_arr, ~, ~ ] = trans_sys_r.rollout( y0, data_r.tau*data_r.dp_init, zeros( 2, 1 ), R*scl*input_arr + data_r.alpha_z*data_r.beta_z*g, t0i, t_arr  );  
     % New one
 
-    plot( a2, y_arr( 1, : ), y_arr( 2,  : ), 'color', 'k' )
+    plot( a2, y_arr( 1, : ), y_arr( 2,  : ), 'color', c_orange )
 end
+set( a2, 'xlim', get( a2, 'xlim' ) + [-4, 2], 'ylim', get( a2, 'ylim' ) + [-3, 3], 'xticklabel',{},'yticklabel',{} )
+xlabel( a2, 'X (m)', 'fontsize', 40)
+ylabel( a2, 'Y (m)', 'fontsize', 40)
 
+fig_save( f, './images/fig1b' )
 
-scl = 1;
-for i = 1 : length( ang_arr )
-    ang = ang_arr( i );
-
-    % Calculate the nonlinear forcing term for discrete movement and rollout
-    input_arr = fs1.calc_forcing_term( t_arr( 1:end-1 ), data_r.weight, t0i, eye( 2 ) );
-   
-    % Rotation matrices 
-    R = [ cos( ang ), -sin( ang );
-          sin( ang ),  cos( ang )];
-
-    % initial position
-    y0 = R*[10;0];
-    g  = y0 + scl*R*( data.goal );
-
-    % Traditional
-    % [ y_arr, ~, ~ ] = trans_sys1.rollout( y0, data.z0, g, R*scl*input_arr, t0i, t_arr  );  
-
-    % Newone
-    [ y_arr, ~, ~ ] = trans_sys1.rollout( y0, data.z0, zeros( 2, 1 ), R*scl*input_arr + data.alpha_z*data.beta_z*g, t0i, t_arr  );  
-
-    plot( a2, y_arr( 1, : ), y_arr( 2,  : ), 'color', 'k' )
-end
-
-% For rhythmic movement, load the data
-tmp  = load( '../learned_parameters/rhythmic/heart.mat' );
-data = tmp.data;
-
-
-%% (1Ac) [Figure 1a] Temporal Scaling 
+%% (1Ac) [Figure 1c] Temporal Scaling 
 
 clear data*, close all; clc;
+
 % Load the A alphabet 
 tmp  = load( '../learned_parameters/discrete/A_loose.mat' );
-data = tmp.data;
+data_d = tmp.data;
 
 % The number of basis functions N
-[ ~, N ] = size( data.weight );
+[ ~, N ] = size( data_d.weight );
 
 % The three elements of discrete DMP
-cs1        = CanonicalSystem( 'discrete', data.tau, data.alpha_s );
-fs1        = NonlinearForcingTerm( cs1, N );
-trans_sys1 = TransformationSystem( data.alpha_z, data.beta_z, cs1 );
+cs_d        = CanonicalSystem( 'discrete', data_d.tau, data_d.alpha_s );
+fs_d        = NonlinearForcingTerm( cs_d, N );
 
 % First, generate the trajectories
-tscl_arr = [ 0.3, 0.5, 1.0, 1.5, 2.0 ];
+tscl_arr = [ 0.5, 1.0, 2.0 ];
 
 % The Parameters for Forward Simulation
 t0i   = 0.0;
-T     = data.tau;
-dt    = 1e-2;
-t_arr = 0:dt:T*3;
+T     = data_d.tau;
+dt    = 1e-3;
+t_arr = 0:dt:(T*3);
 
 y_data_arr = zeros( 2, length( t_arr ), length( tscl_arr ) );
-
-% Calculate the nonlinear forcing term for discrete movement and rollout
-input_arr = fs1.calc_forcing_term( t_arr( 1:end-1 ), data.weight, t0i, eye( 2 ) );
 
 for i = 1 : length( tscl_arr )
     tscl = tscl_arr( i );
 
     % Rollout for data
-    cs_tmp        = CanonicalSystem( 'discrete', tscl*data.tau, data.alpha_s );
+    cs_tmp        = CanonicalSystem( 'discrete', tscl*data_d.tau, data_d.alpha_s );
     fs_tmp        = NonlinearForcingTerm( cs_tmp, N );
-    trans_sys_tmp = TransformationSystem( data.alpha_z, data.beta_z, cs_tmp );
+    trans_sys_tmp = TransformationSystem( data_d.alpha_z, data_d.beta_z, cs_tmp );
         
     % Calculate the nonlinear forcing term for discrete movement and rollout
-    input_arr = fs_tmp.calc_forcing_term( t_arr( 1:end-1 ), data.weight, t0i, eye( 2 ) );
+    input_arr = fs_tmp.calc_forcing_term( t_arr( 1:end-1 ), data_d.weight, t0i, eye( 2 ) );
   
-    [ y_arr, ~, ~ ] = trans_sys_tmp.rollout( zeros( 2, 1 ), tscl*data.z0, data.goal, input_arr, t0i, t_arr  );  
+    [ y_arr, ~, ~ ] = trans_sys_tmp.rollout( zeros( 2, 1 ), tscl*data_d.z0, data_d.goal, input_arr, t0i, t_arr  );  
 
     y_data_arr( :, :, i ) = y_arr;
     
 end
 
-idx_arr = [ 50, 150, 250, 400, 500, 600, 700, 800, 1000, 1500 ];
-offset  = 10*(1:length(idx_arr));
+ttmp_arr = data_d.tau * [ 0.2, 0.3, 0.5, 0.75, 1.0, 1.3, 1.5, 2.0 ];
+offset  = 10*( 1:length( ttmp_arr ) );
+
 % Going through the iterations
 for i = 1: length( tscl_arr )
-    a = subplot( length( tscl_arr ), 1, i );
-    hold on
+    a = subplot( length( tscl_arr ), 2, 2*i-1 );
+    hold on; axis equal
     y_tmp = y_data_arr( :, :, i );
-    for j = 1 : length( idx_arr )
-        idx = idx_arr( j );
+    for j = 1 : length( ttmp_arr )
+        tt = ttmp_arr( j );
+
+        [ ~, idx] = min( abs( t_arr - tt ) );
         off = offset( j );
-        plot( a, off + y_tmp( 1, 1:idx ), y_tmp( 2, 1:idx ), 'linewidth', 5 )
+        idx
+        plot( a, off + y_tmp( 1, 1:idx ), y_tmp( 2, 1:idx ), 'linewidth', 5, 'color', c_blue )
     end
-    set( a, 'xlim', [0, max(offset)+10])
+    set( a, 'xlim', [3, max(offset)+10], 'xticklabel', {}, 'yticklabel', {}  )
+end
+
+
+% Load the A alphabet 
+tmp  = load( '../learned_parameters/rhythmic/heart.mat' );
+data_r = tmp.data;
+
+% The number of basis functions N
+[ ~, N ] = size( data_r.weight );
+
+% The three elements of discrete DMP
+cs_r        = CanonicalSystem( 'rhythmic', data_r.tau, 1.0 );
+fs_r        = NonlinearForcingTerm( cs_r, N );
+
+% First, generate the trajectories
+tscl_arr = [ 0.5, 1.0, 2.0 ];
+
+% The Parameters for Forward Simulation
+t0i   = 0.0;
+T     = data_r.tau;
+dt    = 1e-3;
+t_arr = 0:dt:(T*2*pi*2);
+
+y_data_arr = zeros( 2, length( t_arr ), length( tscl_arr ) );
+
+scl = 1.8;
+for i = 1 : length( tscl_arr )
+    tscl = tscl_arr( i );
+
+    % Rollout for data
+    cs_tmp        = CanonicalSystem( 'rhythmic', tscl*data_r.tau, 1.0 );
+    fs_tmp        = NonlinearForcingTerm( cs_tmp, N );
+    trans_sys_tmp = TransformationSystem( data_r.alpha_z, data_r.beta_z, cs_tmp );
+        
+    % Calculate the nonlinear forcing term for discrete movement and rollout
+    input_arr = fs_tmp.calc_forcing_term( t_arr( 1:end-1 ), data_r.weight, t0i, eye( 2 ) );
+  
+    [ y_arr, ~, ~ ] = trans_sys_tmp.rollout( scl*data_r.p_init, scl*tscl*data_r.dp_init, scl*data_r.p_init + scl*(data_r.goal - data_r.p_init), scl*input_arr, t0i, t_arr  );  
+
+    y_data_arr( :, :, i ) = y_arr;
+    
+end
+
+ttmp_arr = data_r.tau * [ 0.2, 0.3, 0.5, 0.75, 1.0, 1.3, 1.5, 2.0 ]*2*pi;
+offset  = 66*( 1:length( idx_arr ) );
+
+% Going through the iterations
+for i = 1: length( tscl_arr )
+    a = subplot( length( tscl_arr ), 2, 2*i );
+    hold on; axis equal
+    y_tmp = y_data_arr( :, :, i );
+    for j = 1 : length( ttmp_arr )
+        tt = ttmp_arr( j );
+
+        [ ~, idx] = min( abs( t_arr - tt ) );
+        off = offset( j );
+        idx
+
+        plot( a, off + y_tmp( 1, 1:idx ), y_tmp( 2, 1:idx ), 'linewidth', 5, 'color', c_orange )
+    end
+    set( a, 'xlim', [30, max(offset)+45], 'xticklabel', {}, 'yticklabel', {}  )
 end
 
 
@@ -403,6 +455,10 @@ for i = 1 : Na
     load( [ '../learned_parameters/discrete/', a, '_loose.mat' ] );
     traj_data{ i } = data;
 end
+
+traj_data{ 1 }.tau = traj_data{ 1 }.tau * 0.7;
+traj_data{ 2 }.tau = traj_data{ 2 }.tau * 0.9;
+traj_data{ 3 }.tau = traj_data{ 3 }.tau * 1.2;
 
 Ntraj = Na;
 
@@ -567,7 +623,7 @@ set( a2, 'fontsize', 30, 'xlim', [ 0., 18.0 ], 'yticklabel', {}  )
 xlabel( '$t$ (s)', 'fontsize', 40 )
 % ylabel( '$\sum_{i=1}^{3}\alpha_i(t)\mathbf{f}_{d,i}(t)$(-)', 'fontsize', 40 )
 
-tmp_arr = [ 6000, 11300, 25000 ];
+tmp_arr = [ 5500, 11300, 25000 ];
 
 a3 = subplot( 3, 3, 7 );
 hold on
@@ -589,7 +645,7 @@ ylabel( '$Y$ (m)', 'fontsize', 40 )
 set( a3, 'xlim', [-3, 40], 'ylim', [-3, 18 ], 'xticklabel', {}, 'yticklabel', {} )
 
 scatter( a3, p_data_arr( 1,   1, 1 ) + xy_off( 1, 1 ), p_data_arr( 2,   1, 1 ) + xy_off( 2, 1 ), 200,'filled', 'o', 'markerfacecolor', 'w', 'markeredgecolor', c_blue, 'linewidth', 5 )
-scatter( a3, p_data_arr( 1, end, 1 ) + xy_off( 1, 1 ), p_data_arr( 2, end, 1 ) + xy_off( 2, 1 ), 200,'filled', 'd', 'markerfacecolor', 'w', 'markeredgecolor', c_blue, 'linewidth', 5 )
+% scatter( a3, p_data_arr( 1, end, 1 ) + xy_off( 1, 1 ), p_data_arr( 2, end, 1 ) + xy_off( 2, 1 ), 200,'filled', 'd', 'markerfacecolor', 'w', 'markeredgecolor', c_blue, 'linewidth', 5 )
 
 % scatter( a3, p_data_arr( 1,   1, 2 ) + xy_off( 1, 2 ), p_data_arr( 2,   1, 2 ) + xy_off( 2, 2 ), 200, 'filled', 'o', 'markerfacecolor', 'w', 'markeredgecolor', c_blue, 'linewidth', 5 )
 % scatter( a3, p_data_arr( 1, end, 2 ) + xy_off( 1, 2 ), p_data_arr( 2, end, 2 ) + xy_off( 2, 2 ), 200,'filled', 'd', 'markerfacecolor', 'w', 'markeredgecolor', c_blue, 'linewidth', 5 )
@@ -620,9 +676,9 @@ set( a3, 'xlim', [-3, 40], 'ylim', [-3, 18 ], 'xticklabel', {}, 'yticklabel', {}
 
 
 scatter( a3, p_data_arr( 1,   1, 1 ) + xy_off( 1, 1 ), p_data_arr( 2,   1, 1 ) + xy_off( 2, 1 ), 200,'filled', 'o', 'markerfacecolor', 'w', 'markeredgecolor', c_blue, 'linewidth', 5 )
-scatter( a3, p_data_arr( 1, end, 1 ) + xy_off( 1, 1 ), p_data_arr( 2, end, 1 ) + xy_off( 2, 1 ), 200,'filled', 'd', 'markerfacecolor', 'w', 'markeredgecolor', c_blue, 'linewidth', 5 )
+% scatter( a3, p_data_arr( 1, end, 1 ) + xy_off( 1, 1 ), p_data_arr( 2, end, 1 ) + xy_off( 2, 1 ), 200,'filled', 'd', 'markerfacecolor', 'w', 'markeredgecolor', c_blue, 'linewidth', 5 )
 
-scatter( a3, p_data_arr( 1,   1, 2 ) + xy_off( 1, 2 ), p_data_arr( 2,   1, 2 ) + xy_off( 2, 2 ), 200, 'filled', 'o', 'markerfacecolor', 'w', 'markeredgecolor', c_blue, 'linewidth', 5 )
+% scatter( a3, p_data_arr( 1,   1, 2 ) + xy_off( 1, 2 ), p_data_arr( 2,   1, 2 ) + xy_off( 2, 2 ), 200, 'filled', 'o', 'markerfacecolor', 'w', 'markeredgecolor', c_blue, 'linewidth', 5 )
 % scatter( a3, p_data_arr( 1, end, 2 ) + xy_off( 1, 2 ), p_data_arr( 2, end, 2 ) + xy_off( 2, 2 ), 200,'filled', 'd', 'markerfacecolor', 'w', 'markeredgecolor', c_blue, 'linewidth', 5 )
 
 % scatter( a3, p_data_arr( 1,   1, 3 ) + xy_off( 1, 3 ), p_data_arr( 2,   1, 3 ) + xy_off( 2, 3 ), 200,'filled', 'o', 'markerfacecolor', 'w', 'markeredgecolor', c_blue, 'linewidth', 5 )
@@ -649,12 +705,12 @@ set( a3, 'xlim', [-3, 40], 'ylim', [-3, 18 ], 'xticklabel', {}, 'yticklabel', {}
 
 
 scatter( a3, p_data_arr( 1,   1, 1 ) + xy_off( 1, 1 ), p_data_arr( 2,   1, 1 ) + xy_off( 2, 1 ), 200,'filled', 'o', 'markerfacecolor', 'w', 'markeredgecolor', c_blue, 'linewidth', 5 )
-scatter( a3, p_data_arr( 1, end, 1 ) + xy_off( 1, 1 ), p_data_arr( 2, end, 1 ) + xy_off( 2, 1 ), 200,'filled', 'd', 'markerfacecolor', 'w', 'markeredgecolor', c_blue, 'linewidth', 5 )
+% scatter( a3, p_data_arr( 1, end, 1 ) + xy_off( 1, 1 ), p_data_arr( 2, end, 1 ) + xy_off( 2, 1 ), 200,'filled', 'd', 'markerfacecolor', 'w', 'markeredgecolor', c_blue, 'linewidth', 5 )
+% 
+% scatter( a3, p_data_arr( 1,   1, 2 ) + xy_off( 1, 2 ), p_data_arr( 2,   1, 2 ) + xy_off( 2, 2 ), 200, 'filled', 'o', 'markerfacecolor', 'w', 'markeredgecolor', c_blue, 'linewidth', 5 )
+% scatter( a3, p_data_arr( 1, end, 2 ) + xy_off( 1, 2 ), p_data_arr( 2, end, 2 ) + xy_off( 2, 2 ), 200,'filled', 'd', 'markerfacecolor', 'w', 'markeredgecolor', c_blue, 'linewidth', 5 )
 
-scatter( a3, p_data_arr( 1,   1, 2 ) + xy_off( 1, 2 ), p_data_arr( 2,   1, 2 ) + xy_off( 2, 2 ), 200, 'filled', 'o', 'markerfacecolor', 'w', 'markeredgecolor', c_blue, 'linewidth', 5 )
-scatter( a3, p_data_arr( 1, end, 2 ) + xy_off( 1, 2 ), p_data_arr( 2, end, 2 ) + xy_off( 2, 2 ), 200,'filled', 'd', 'markerfacecolor', 'w', 'markeredgecolor', c_blue, 'linewidth', 5 )
-
-scatter( a3, p_data_arr( 1,   1, 3 ) + xy_off( 1, 3 ), p_data_arr( 2,   1, 3 ) + xy_off( 2, 3 ), 200,'filled', 'o', 'markerfacecolor', 'w', 'markeredgecolor', c_blue, 'linewidth', 5 )
+% scatter( a3, p_data_arr( 1,   1, 3 ) + xy_off( 1, 3 ), p_data_arr( 2,   1, 3 ) + xy_off( 2, 3 ), 200,'filled', 'o', 'markerfacecolor', 'w', 'markeredgecolor', c_blue, 'linewidth', 5 )
 scatter( a3, p_data_arr( 1, end, 3 ) + xy_off( 1, 3 ), p_data_arr( 2, end, 3 ) + xy_off( 2, 3 ), 200,'filled', 'd', 'markerfacecolor', 'w', 'markeredgecolor', c_blue, 'linewidth', 5 )
 
 fig_save( f, './images/fig2b')
@@ -664,6 +720,8 @@ fig_save( f, './images/fig2b')
 
 % Merging Two Discrete Movements
 close all; clc;
+
+f = figure( ); 
 
 % Load two mat functions, discrete movements
 tmp1 = load( '../learned_parameters/discrete/A_loose.mat' ); dis1 = tmp1.data;
@@ -681,34 +739,34 @@ trans_sys = TransformationSystem( dis1.alpha_z, dis1.beta_z, cs );
 
 % Rollout for each discrete movement
 t0i   =    0.0;           % The initial time of the movement rollout
-T     =    8.0;           % The   whole time of the simulation 
-dt    =   1e-3;           % Time-step  for the simulation
-t_arr = 0:dt:T;           % Time array for the simulation
+dt    =   1e-4;           % Time-step  for the simulation
+t_arr = 0:dt:(2*pi*3);    % Time array for the simulation
 
-F_arr1 = fs.calc_forcing_term( t_arr( 1:end-1 ), dis1.weight, t0i, 1.1*eye( 2 ) );
-F_arr2 = fs.calc_forcing_term( t_arr( 1:end-1 ), dis2.weight, t0i, 0.9*eye( 2 ) );
+F_arr1 = fs.calc_forcing_term( t_arr( 1:end-1 ), dis1.weight, t0i, eye( 2 ) );
+F_arr2 = fs.calc_forcing_term( t_arr( 1:end-1 ), dis2.weight, t0i, eye( 2 ) );
  
-f = figure( ); a = axes( 'parent', f );
+a = subplot( 3, 1, 1, 'parent', f );
 hold on; axis equal
 
 gain_arr = 0:0.1:1;
 Ntmp = length( gain_arr );
 off = 12.0;
 
+scl1 = 1.1;
+scl2 = 0.9;
+
 for i = 1: Ntmp
-    gain = gain_arr( i );
+    gain = gain_arr( Ntmp-i+1 );
 
-    F_arr =    F_arr1 * gain +    F_arr2 * ( 1 - gain );
-    goal  = dis1.goal * gain + dis2.goal * ( 1 - gain );
+    F_arr =  scl1 * F_arr1 * gain    +  scl2* F_arr2 * ( 1 - gain );
+    goal  =  scl1 * dis1.goal * gain + scl2* dis2.goal * ( 1 - gain );
 
-    [ y_arr_comb, ~, ~] = trans_sys.rollout( zeros( n, 1 ), zeros( n, 1 ), goal, F_arr, t0i, t_arr  );    
+    [ y_arr_comb, ~, ~] = trans_sys.rollout( zeros( n, 1 ), zeros( n, 1 ), zeros( n, 1 ), F_arr + dis1.alpha_z*dis1.beta_z*goal, t0i, t_arr  );    
     
-    plot( a, (i-1)*off+y_arr_comb( 1, : )-3, -(i-1)*0.08*off+y_arr_comb( 2, : )+3.5, 'linewidth', 6, 'color', c_blue )
+    plot( a, (i-1)*off+y_arr_comb( 1, : )-3, (i-1)*0.08*off+y_arr_comb( 2, : )+3.5, 'linewidth', 6, 'color', c_blue )
 end
-set( a, 'xticklabel', {}, 'yticklabel', {}, 'xlim', [-12, 132], 'ylim', [-10, 10]  )
+set( a, 'xticklabel', {}, 'yticklabel', {}, 'xlim', [-12, 132], 'ylim', [0, 20]  )
 set( a, 'color', 'none' )
-
-fig_save( f, './images/fig3a')
 
 % Load two mat functions, discrete movements
 tmp1 = load( '../learned_parameters/discrete/A_loose.mat' ); dis1 = tmp1.data;
@@ -719,6 +777,7 @@ n = size( dis1.weight, 1 );
 N = size( dis2.weight, 2 );
 
 % Discrete DMP
+dis1.tau = 1.0;
 cs_d        = CanonicalSystem( 'discrete', dis1.tau, dis1.alpha_s );
 fs_d        = NonlinearForcingTerm( cs_d, N );
 trans_sys_d = TransformationSystem( dis1.alpha_z, dis1.beta_z, cs_d );
@@ -730,21 +789,19 @@ trans_sys_r = TransformationSystem( rhy1.alpha_z, rhy1.beta_z, cs_r );
 
 % Rollout for each discrete movement
 t0i   =    0.0;           % The initial time of the movement rollout
-T     =   2*pi*6;           % The   whole time of the simulation 
+T     =  dis1.tau;        % The   whole time of the simulation 
 dt    =   1e-3;           % Time-step  for the simulation
-t_arr = 0:dt:T;           % Time array for the simulation
+t_arr = 0:dt:(1*T);       % Time array for the simulation
 
-scl = 0.6;
-F_arr1 = fs_d.calc_forcing_term( t_arr( 1:end-1 ), dis1.weight, t0i, 1.1*eye( 2 ) );
-F_arr2 = fs_r.calc_forcing_term( t_arr( 1:end-1 ), rhy1.weight, t0i, scl*eye( 2 ) );
+F_arr1 = fs_d.calc_forcing_term( t_arr( 1:end-1 ), dis1.weight, t0i, eye( 2 ) );
+F_arr2 = fs_r.calc_forcing_term( t_arr( 1:end-1 ), rhy1.weight, t0i, eye( 2 ) );
  
-f = figure( ); a = axes( 'parent', f );
+a = subplot( 3, 1, 2, 'parent', f );
 hold on; axis equal
 
 gain_arr = 0:0.1:1;
 Ntmp = length( gain_arr );
-off = 12.0;
-
+off = 12.5;
 
 % Initialize a matrix to hold the interpolated colors
 color_arr = zeros( Ntmp, 3);
@@ -754,26 +811,22 @@ for i = 1:3
     color_arr(:, i) = linspace( c_orange( i ), c_blue( i ), Ntmp );
 end
 
+scl1 = 1.1;
+scl2 = 0.5;
+
 for i = 1: Ntmp
-    gain = gain_arr( i );
+    gain = gain_arr( Ntmp-i+1 );
 
-    F_arr =    F_arr1 * gain +   scl*F_arr2 * ( 1 - gain );
-    goal  = dis1.goal * gain +   scl*rhy1.goal * ( 1 - gain );
-     init =  scl^2*rhy1.p_init * (1 - gain ) ;
-    zinit =  scl^2*rhy1.dp_init*rhy1.tau * (1-gain) + gain * dis1.z0;
+    F_arr =    scl1*F_arr1 * gain +   scl2*F_arr2 * ( 1 - gain );
+    goal  = scl1*dis1.goal * gain +   scl2*( rhy1.goal - rhy1.p_init )* ( 1 - gain );
    
-    if i == Ntmp
-        [ y_arr_comb, ~, ~] = trans_sys_d.rollout( init, zeros( 2, 1), goal, F_arr, t0i, t_arr  );  
-    else
-        [ y_arr_comb, ~, ~] = trans_sys_r.rollout( init, zinit, goal, F_arr, t0i, t_arr  );    
-    end
+    [ y_arr_comb, ~, ~] = trans_sys_d.rollout( zeros( 2, 1 ), zeros( 2, 1), zeros( 2, 1), F_arr + dis1.alpha_z*dis1.beta_z*goal, t0i, t_arr  );  
     
-    plot( a, (i-1)*off+y_arr_comb( 1, : ), -(i-1)*0.05*off+y_arr_comb( 2, : ), 'linewidth', 6, 'color', color_arr( i, : ) )
-end
-set( a, 'xticklabel', {}, 'yticklabel', {}, 'xlim', [-12, 132], 'ylim', [-10, 10]  )
-set( a, 'color', 'none' )
+    plot( a, (i-1)*off+y_arr_comb( 1, : )-3, (i-1)*0.08*off+y_arr_comb( 2, : )+3.5, 'linewidth', 6, 'color', color_arr( Ntmp-i+1, : ) )
 
-fig_save( f, './images/fig3b')
+end
+set( a, 'xticklabel', {}, 'yticklabel', {}, 'xlim', [-12, 132], 'ylim', [0, 20]  )
+set( a, 'color', 'none' )
 
 % Load two mat functions, discrete movements
 tmp1 = load( '../learned_parameters/rhythmic/circle.mat' ); rhy1 = tmp1.data;
@@ -805,7 +858,7 @@ scl2 =  0.6;
 F_arr1 = fs_r1.calc_forcing_term( t_arr( 1:end-1 ), rhy1.weight, t0i, scl1*eye( 2 ) );
 F_arr2 = fs_r2.calc_forcing_term( t_arr( 1:end-1 ), rhy2.weight, t0i, scl2*eye( 2 ) );
  
-f = figure( ); a = axes( 'parent', f );
+a = subplot( 3, 1, 3, 'parent', f );
 hold on; axis equal
 
 gain_arr = 0:0.1:1;
