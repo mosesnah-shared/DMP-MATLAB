@@ -45,6 +45,8 @@ set( hFig, 'PaperPositionMode',   'Auto', ...
                   'PaperUnits', 'Inches', ...
                    'PaperSize', [ pos( 3 ), pos( 4 ) ] )
                
-saveas( hFig, figName + ".pdf" )
+% saveas( hFig, figName + ".pdf" )
+exportgraphics( hFig, [ figName, '.pdf' ],'ContentType','vector')
+
 
 end

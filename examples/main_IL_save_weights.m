@@ -179,7 +179,7 @@ syms t_sym
 % The three types of trajectory that we aim to learn
 % [1] circle
 % [2] heart
-name_traj = 'circle';
+name_traj = 'heart';
 
 % Period 
 Tp = 1;       
@@ -221,9 +221,11 @@ ddp_arr = ddp_func( t_arr );
 % Get the length of the t_arr
 P = length( t_arr );
 
+% Get the initial position
+p_arr = p_arr - p_arr( :, 1 );
+
 % Get the average position and take it off
 goal = mean( p_arr, 2 );
-p_arr = p_arr - goal;
 
 % Parameters of DMP
 N = 50;
@@ -239,7 +241,7 @@ fs        = NonlinearForcingTerm( cs, N );
 
 % The Force Array 
 % Saving the initial and goal location of the demonstrated trajectory
-f_arr = trans_sys.get_desired( p_arr, dp_arr, ddp_arr, zeros( 2, 1 ) );
+f_arr = trans_sys.get_desired( p_arr, dp_arr, ddp_arr, goal );
 
 % The phi matrix 
 Phi_mat = zeros( P, N );
@@ -263,15 +265,13 @@ t_arr = linspace( 0, T, N+1 );
 f = figure( ); a = axes( 'parent', f );
 hold( a, 'on' ); axis equal
 
-input_arr = fs.calc_forcing_term( t_arr( 1:end-1 ), w_arr, 0, eye( 2 ) );
-[ p_roll, ~, ~] = trans_sys.rollout( p_func( 0 ), zeros( 2, 1 ), zeros( 2, 1 ), input_arr, 0, t_arr  ); 
+input_arr = fs.calc_forcing_term( t_arr( 1:end-1 ), w_arr, 0, eye( 2 ) ) + alpha_z*beta_z*goal ;
+[ p_roll, ~, ~] = trans_sys.rollout( zeros( 2, 1 ), zeros( 2, 1 ), zeros( 2, 1 ), input_arr, 0, t_arr  ); 
 
 plot( a, p_roll( 1, : ), p_roll( 2, : ), 'linewidth', 4 )
 plot( a,  p_arr( 1, : ),  p_arr( 2, : ), 'linewidth', 8, 'linestyle', '--' , 'color', 'k')
 
 %%  -- (2C) Saving the Data for future rollout
-
-
 
 data = struct;
 
@@ -282,7 +282,7 @@ data.tau     = tau;
 data.alpha_z = alpha_z;
 data.beta_z  =  beta_z;
 data.weight  = w_arr;
-data.p_init  =  p_func( 0 );
+data.p_init  =  p_arr( :, 1 );
 data.dp_init =  dp_func( 0 );
 data.goal    = goal;
 
