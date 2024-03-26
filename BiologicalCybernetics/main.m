@@ -339,6 +339,8 @@ data_d = tmp.data;
 % The three elements of discrete DMP
 cs_d = CanonicalSystem( 'discrete', data_d.tau, data_d.alpha_s );
 fs_d = NonlinearForcingTerm( cs_d, N );
+trans_sys_d = TransformationSystem( data_d.alpha_z, data_d.beta_z, cs_d );
+
 
 % First, generate the trajectories
 tscl_arr = [ 0.5, 1.0, 2.0 ];
@@ -354,15 +356,10 @@ y_data_arr = zeros( 2, length( t_arr ), length( tscl_arr ) );
 for i = 1 : length( tscl_arr )
     tscl = tscl_arr( i );
 
-    % Rollout for data
-    cs_tmp        = CanonicalSystem( 'discrete', tscl*data_d.tau, data_d.alpha_s );
-    fs_tmp        = NonlinearForcingTerm( cs_tmp, N );
-    trans_sys_tmp = TransformationSystem( data_d.alpha_z, data_d.beta_z, cs_tmp );
-        
     % Calculate the nonlinear forcing term for discrete movement and rollout
-    input_arr = fs_tmp.calc_forcing_term( t_arr( 1:end-1 ), data_d.weight, t0i, eye( 2 ) );
+    input_arr = fs_d.calc_forcing_term( t_arr( 1:end-1 )/tscl, data_d.weight, t0i, eye( 2 ) );
   
-    [ y_arr, ~, ~ ] = trans_sys_tmp.rollout( zeros( 2, 1 ), zeros( 2, 1 ), zeros( 2, 1), input_arr +data_d.alpha_z*data_d.beta_z*data_d.goal, t0i, t_arr  );  
+    [ y_arr, ~, ~ ] = trans_sys_d.rollout( zeros( 2, 1 ), zeros( 2, 1 ), zeros( 2, 1), input_arr +data_d.alpha_z*data_d.beta_z*data_d.goal, t0i, t_arr  );  
 
     y_data_arr( :, :, i ) = y_arr;
     
@@ -387,7 +384,7 @@ for i = 1: length( tscl_arr )
     end
     set( a, 'xlim', [3, max(offset)+10], 'xticklabel', {}, 'yticklabel', {}  )
     
-    title( a, ['$\tau=', num2str( tscl_arr( i ), '%.2f' ), '\tau^{(d)}$'], 'fontsize', 40 )
+    title( a, ['$s_t=', num2str( tscl_arr( i ), '%.2f' ), '$' ], 'fontsize', 40 )
 end
 
 % Load the A alphabet 
@@ -400,6 +397,7 @@ data_r = tmp.data;
 % The three elements of discrete DMP
 cs_r = CanonicalSystem( 'rhythmic', data_r.tau, 1.0 );
 fs_r = NonlinearForcingTerm( cs_r, N );
+trans_sys_r = TransformationSystem( data_r.alpha_z, data_r.beta_z, cs_r );
 
 % First, generate the trajectories
 tscl_arr = [ 0.5, 1.0, 2.0 ];
@@ -416,15 +414,10 @@ scl = 1.8;
 for i = 1 : length( tscl_arr )
     tscl = tscl_arr( i );
 
-    % Rollout for data
-    cs_tmp        = CanonicalSystem( 'rhythmic', tscl*data_r.tau, 1.0 );
-    fs_tmp        = NonlinearForcingTerm( cs_tmp, N );
-    trans_sys_tmp = TransformationSystem( data_r.alpha_z, data_r.beta_z, cs_tmp );
-        
     % Calculate the nonlinear forcing term for discrete movement and rollout
-    input_arr = fs_tmp.calc_forcing_term( t_arr( 1:end-1 ), data_r.weight, t0i, eye( 2 ) );
+    input_arr = fs_r.calc_forcing_term( t_arr( 1:end-1 )/tscl, data_r.weight, t0i, eye( 2 ) );
   
-    [ y_arr, ~, ~ ] = trans_sys_tmp.rollout( zeros( 2, 1), zeros( 2, 1 ), zeros( 2, 1 ), scl*input_arr + data_r.alpha_z*data_r.beta_z*data_r.goal, t0i, t_arr  );  
+    [ y_arr, ~, ~ ] = trans_sys_r.rollout( zeros( 2, 1), zeros( 2, 1 ), zeros( 2, 1 ), scl*input_arr + data_r.alpha_z*data_r.beta_z*data_r.goal, t0i, t_arr  );  
 
     y_data_arr( :, :, i ) = y_arr;
     
@@ -447,7 +440,7 @@ for i = 1: length( tscl_arr )
         scatter( a, off + y_tmp( 1, idx ), y_tmp( 2, idx ), 100, 'markerfacecolor', 'w', 'markeredgecolor', c_orange, 'linewidth', 3 )
     end
     set( a, 'xlim', [30, max(offset)+45], 'xticklabel', {}, 'yticklabel', {}  )
-    title( a, ['$\tau=', num2str( tscl_arr( i ), '%.2f' ), '\tau^{(d)}$'], 'fontsize', 40 )
+    title( a, ['$s_t=', num2str( tscl_arr( i ), '%.2f' ), '$'], 'fontsize', 40 )
     
 end
 
