@@ -182,7 +182,7 @@ syms t_sym
 name_traj = 'heart';
 
 % Period 
-Tp = 0.1;       
+Tp = 1;       
 
 switch name_traj
 

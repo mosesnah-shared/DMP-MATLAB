@@ -575,16 +575,15 @@ ylabel( a2, 'Y', 'fontsize', 40)
 
 fig_save( f, './images/fig1c' )
 
+%% (1B) [Figure 2a] Merging Two Discrete Movements
 
-%% (1B) [Figure 2a] Merging the Primitives
-
-%% (--------------] (1a) Merging Two Discrete Movements
 close all; clc;
 
 f = figure( ); 
 
 % ==================================== %
 % Combination of two Discrete Movements
+% For simple combination
 % ==================================== %
 
 % Load two mat functions, discrete movements
@@ -610,7 +609,7 @@ az = az1; as = as1; bz = bz1;
 g_dd1   = dis1.goal; g_dd2   = dis2.goal;
 tau_dd1 = dis1.tau;  tau_dd2 = dis2.tau;
 
-tau = 3.0;
+tau = tau_dd1;
 
 % The DMP for the input
 sd  = CanonicalSystem( 'discrete', tau, as );
@@ -619,7 +618,7 @@ ts  = TransformationSystem( az, bz, sd );
 % Rollout for each discrete movement
 t0i   =    0.0;    % The initial time of the movement rollout
 dt    =   1e-4;    % Time-step  for the simulation
-t_arr = 0:dt:3;  % Time array for the simulation
+t_arr = 0:dt:(tau*6);  % Time array for the simulation
 
 % The discrete movements' DMPs
 sd_1  = CanonicalSystem( 'discrete', tau_dd1, as );
@@ -628,8 +627,11 @@ sd_2  = CanonicalSystem( 'discrete', tau_dd2, as );
 fd_1  = NonlinearForcingTerm( sd_1, N );
 fd_2  = NonlinearForcingTerm( sd_2, N );
 
-tscl1 = tau/tau_dd1;
-tscl2 = tau/tau_dd2;
+% Time scaling factor
+tmp1 = 1.0; tmp2 = 1.0;
+
+tscl1 = tau/tau_dd1 * tmp1;
+tscl2 = tau/tau_dd2 * tmp2;
 
 input_arr1 = fd_1.calc_forcing_term( t_arr( 1:end-1 )/tscl1, dis1.weight, t0i, eye( 2 ) );
 input_arr2 = fd_2.calc_forcing_term( t_arr( 1:end-1 )/tscl2, dis2.weight, t0i, eye( 2 ) );
@@ -647,12 +649,14 @@ off = 12.0;
 scl1 = 1.1;
 scl2 = 0.9;
 
+tscl_arr = linspace( 1, 3, Ntmp );
+
 for i = 1: Ntmp
     gain = gain_arr( Ntmp-i+1 );
 
     prim = gain * prim1 * scl1 + ( 1 - gain ) * prim2 * scl2;
 
-    [ y_arr_comb, ~, ~] = ts_d2.rollout( zeros( n, 1 ), zeros( n, 1 ), zeros( n, 1 ), prim, t0i, t_arr  );    
+    [ y_arr_comb, ~, ~] = ts.rollout( zeros( n, 1 ), zeros( n, 1 ), zeros( n, 1 ), prim, t0i, t_arr  );    
     
     plot( a, (i-1)*off+y_arr_comb( 1, : )-3, (i-1)*0.08*off+y_arr_comb( 2, : )+3.5, 'linewidth', 6, 'color', c_blue )
 end
@@ -660,12 +664,102 @@ set( a, 'xticklabel', {}, 'yticklabel', {}, 'xlim', [-12, 132], 'ylim', [0, 20] 
 set( a, 'color', 'none' )
 
 % ==================================== %
-% Combination of Discrete and Rhythmic Movements
+% Combination of two Discrete Movements
+% For Temporal Scaling
+% ==================================== %
+
+a = subplot( 3, 1, 2, 'parent', f );
+hold on; axis equal
+
+gain_arr = 0:0.1:1;
+Ntmp = length( gain_arr );
+off = 12.0;
+
+scl1 = 1.1;
+scl2 = 0.9;
+
+% Time scaling factor
+tmp1 = 2.0; tmp2 = 1.0;
+
+tscl1 = tau/tau_dd1 * tmp1;
+tscl2 = tau/tau_dd2 * tmp2;
+
+input_arr1 = fd_1.calc_forcing_term( t_arr( 1:end-1 )/tscl1, dis1.weight, t0i, eye( 2 ) );
+input_arr2 = fd_2.calc_forcing_term( t_arr( 1:end-1 )/tscl2, dis2.weight, t0i, eye( 2 ) );
+
+prim1 = input_arr1 + az*bz*g_dd1;
+prim2 = input_arr2 + az*bz*g_dd2;
+
+
+for i = 1: Ntmp
+    gain = gain_arr( Ntmp-i+1 );
+    prim = gain * prim1 * scl1 + ( 1 - gain ) * prim2 * scl2;
+
+    [ y_arr_comb, ~, ~] = ts.rollout( zeros( n, 1 ), zeros( n, 1 ), zeros( n, 1 ), prim, t0i, t_arr  );    
+    
+    plot( a, (i-1)*off+y_arr_comb( 1, : )-3, (i-1)*0.08*off+y_arr_comb( 2, : )+3.5, 'linewidth', 6, 'color', c_blue )
+end
+set( a, 'xticklabel', {}, 'yticklabel', {}, 'xlim', [-12, 132], 'ylim', [0, 20]  )
+set( a, 'color', 'none' )
+
+
+% ==================================== %
+% Combination of two Discrete Movements
+% For Spatial Scaling
+% ==================================== %
+
+a = subplot( 3, 1, 3, 'parent', f );
+hold on; axis equal
+
+gain_arr = 0:0.1:1;
+Ntmp = length( gain_arr );
+off = 12.0;
+
+scl1 = 1.1;
+scl2 = 0.4;
+
+% Time scaling factor
+tmp1 = 1.0; tmp2 = 1.0;
+
+tscl1 = tau/tau_dd1 * tmp1;
+tscl2 = tau/tau_dd2 * tmp2;
+
+input_arr1 = fd_1.calc_forcing_term( t_arr( 1:end-1 )/tscl1, dis1.weight, t0i, eye( 2 ) );
+input_arr2 = fd_2.calc_forcing_term( t_arr( 1:end-1 )/tscl2, dis2.weight, t0i, eye( 2 ) );
+
+prim1 = input_arr1 + az*bz*g_dd1;
+prim2 = input_arr2 + az*bz*g_dd2;
+
+S = [ cos( pi/4 ), -sin( pi/4 ); 
+      sin( pi/4 ),  cos( pi/4 ) ];
+
+for i = 1: Ntmp
+    gain = gain_arr( Ntmp-i+1 );
+    prim = S * gain * prim1 * scl1 + inv( S ) * ( 1 - gain ) * prim2 * scl2;
+
+    [ y_arr_comb, ~, ~] = ts.rollout( zeros( n, 1 ), zeros( n, 1 ), zeros( n, 1 ), prim, t0i, t_arr  );    
+    
+    plot( a, (i-1)*off+y_arr_comb( 1, : ), (i-1)*0.09*off+y_arr_comb( 2, : )+3.5, 'linewidth', 6, 'color', c_blue )
+end
+set( a, 'xticklabel', {}, 'yticklabel', {}, 'xlim', [-12, 132], 'ylim', [0, 20]  )
+set( a, 'color', 'none' )
+
+fig_save( f, './images/fig2a_D' )
+
+%% (1B) [Figure 2b] Merging Discrete and Rhythmic Movements
+
+close all; clc;
+
+f = figure( ); 
+
+% ==================================== %
+% Combination of Discrete and Rhytmic Movements
+% For simple combination
 % ==================================== %
 
 % Load two mat functions, discrete movements
 tmp1 = load( '../learned_parameters/discrete/A_loose.mat' ); dis1 = tmp1.data;
-tmp2 = load( '../learned_parameters/rhythmic/heart.mat'   ); rhy1 = tmp2.data;
+tmp2 = load( '../learned_parameters/rhythmic/heart.mat' );   rhy1 = tmp2.data;
 
 % Get the degrees of freedom and the number of weights 
 n1 = size( dis1.weight, 1 ); N1 = size( dis1.weight, 2 );
@@ -676,184 +770,524 @@ n = n1; N = N1;
 
 % The alpha, beta values must be same
 % The gains for the transformation system
+as1 = dis1.alpha_s;   as2 = dis1.alpha_s;
 az1 = dis1.alpha_z;   az2 = rhy1.alpha_z; 
 bz1 = dis1.beta_z;    bz2 = rhy1.beta_z;
 
-assert( az1 == az2 && bz1 == bz2 );
-az = az1; as = dis1.alpha_s; bz = bz1;
+assert( as1 == as2 && az1 == az2 && bz1 == bz2 );
+az = az1; as = as1; bz = bz1;
 
-g_dd   = dis1.goal; g_dr   = rhy1.goal;
-tau_dd = dis1.tau;  tau_dr = rhy1.tau;
+g_dd   = dis1.goal; g_rd   = rhy1.goal;
+tau_dd = dis1.tau;  tau_rd = rhy1.tau;
 
-tau = rhy1.tau;
+tau = tau_rd;
 
 % The DMP for the input
-sd = CanonicalSystem( 'rhythmic', tau, 1.0 );
-ts = TransformationSystem( az, bz, sd );
+% Either discrete or rhythmic can be used.
+s  = CanonicalSystem( 'rhythmic', tau, as );
+ts = TransformationSystem( az, bz, s );
 
 % Rollout for each discrete movement
 t0i   =    0.0;    % The initial time of the movement rollout
 dt    =   1e-4;    % Time-step  for the simulation
-t_arr = 0:dt:12;  % Time array for the simulation
+t_arr = 0:dt:(tau_rd*2*pi*3);  % Time array for the simulation
 
 % The discrete movements' DMPs
-sd1  = CanonicalSystem( 'discrete', tau_dd, as );
-sr1  = CanonicalSystem( 'rhythmic', tau_dr, 1.0 );
+sd  = CanonicalSystem( 'discrete', tau_dd, as );
+sr  = CanonicalSystem( 'rhythmic', tau_rd, as );
 
-fd1  = NonlinearForcingTerm( sd1, N );
-fr1  = NonlinearForcingTerm( sr1, N );
+fd  = NonlinearForcingTerm( sd, N );
+fr  = NonlinearForcingTerm( sr, N );
 
-tscl1 = tau/tau_dd;
-tscl2 = tau/tau_dr;
+% Time scaling factor
+tmp1 = 10.0; tmp2 = 1.0;
 
-input_arr1 = fd1.calc_forcing_term( t_arr( 1:end-1 ), dis1.weight, t0i, eye( 2 ) );
-input_arr2 = fr1.calc_forcing_term( t_arr( 1:end-1 ), rhy1.weight, t0i, eye( 2 ) );
+tscl1 = tau/tau_dd * tmp1;
+tscl2 = tau/tau_rd * tmp2;
 
-scl1 = 1.1;
-scl2 = 0.5;
+input_arr1 = fd.calc_forcing_term( t_arr( 1:end-1 )/tscl1, dis1.weight, t0i, eye( 2 ) );
+input_arr2 = fr.calc_forcing_term( t_arr( 1:end-1 )/tscl2, rhy1.weight, t0i, eye( 2 ) );
 
 prim1 = input_arr1 + az*bz*g_dd;
-prim2 = input_arr2 + az*bz*g_dr;
+prim2 = input_arr2 + az*bz*g_rd;
+
+a = subplot( 3, 1, 1, 'parent', f );
+hold on; axis equal
+
+gain_arr = 0:0.1:1;
+Ntmp = length( gain_arr );
+off = 13.5;
+
+scl1 =  1.1;
+scl2 =  0.4;
+tscl_arr = linspace( 1, 3, Ntmp );
+
+for i = 1: Ntmp
+    gain = gain_arr( Ntmp-i+1 );
+
+    prim = gain * prim1 * scl1 + ( 1 - gain ) * prim2 * scl2;
+
+    [ y_arr_comb, ~, ~] = ts.rollout( zeros( n, 1 ), zeros( n, 1 ), zeros( n, 1 ), prim, t0i, t_arr  );    
+    if i == Ntmp
+        plot( a, (i-1)*off+2+y_arr_comb( 1, : )-3, (i-1)*0.075*off+y_arr_comb( 2, : )+3.5, 'linewidth', 6, 'color', c_blue * gain + c_orange * (1-gain) )
+    else
+        plot( a, (i-1)*off+y_arr_comb( 1, : )-3, (i-1)*0.075*off+y_arr_comb( 2, : )+3.5, 'linewidth', 6, 'color', c_blue * gain + c_orange * (1-gain) )
+    end
+end
+set( a, 'xticklabel', {}, 'yticklabel', {}, 'xlim', [-12, 147], 'ylim', [0, 20]  )
+set( a, 'color', 'none' )
+
+
+% ==================================== %
+% Combination of Discrete and Rhythmic Movements
+% For Temporal Scaling
+% ==================================== %
+
+a = subplot( 3, 1, 2, 'parent', f );
+hold on; axis equal         
+
+% Rollout for each discrete movement
+t0i   =    0.0;    % The initial time of the movement rollout
+dt    =   1e-4;    % Time-step  for the simulation
+t_arr = 0:dt:(tau_rd*2*pi*40);  % Time array for the simulation
+
+% Time scaling factor
+tmp1 = 40.0; tmp2 = 1.0;
+
+tscl1 = tau/tau_dd * tmp1;
+tscl2 = tau/tau_rd * tmp2;
+
+input_arr1 = fd.calc_forcing_term( t_arr( 1:end-1 )/tscl1, dis1.weight, t0i, eye( 2 ) );
+input_arr2 = fr.calc_forcing_term( t_arr( 1:end-1 )/tscl2, rhy1.weight, t0i, eye( 2 ) );
+
+prim1 = input_arr1 + az*bz*g_dd;
+prim2 = input_arr2 + az*bz*g_rd;
 
 a = subplot( 3, 1, 2, 'parent', f );
 hold on; axis equal
 
+gain_arr = 0:0.1:1;
+Ntmp = length( gain_arr );
+off = 13.5;
+
+scl1 =  1.1;
+scl2 =  0.4;
+tscl_arr = linspace( 1, 3, Ntmp );
+
 for i = 1: Ntmp
     gain = gain_arr( Ntmp-i+1 );
     prim = gain * prim1 * scl1 + ( 1 - gain ) * prim2 * scl2;
+
+    [ y_arr_comb, ~, ~] = ts.rollout( zeros( n, 1 ), zeros( n, 1 ), zeros( n, 1 ), prim, t0i, t_arr  );    
     
-    [ y_arr_comb, ~, ~] = ts.rollout( zeros( 2, 1 ), zeros( 2, 1), zeros( 2, 1), prim, t0i, t_arr  );  
-    
-    plot( a, (i-1)*off+y_arr_comb( 1, : )-3, (i-1)*0.08*off+y_arr_comb( 2, : )+3.5, 'linewidth', 6, 'color', c_orange * gain + c_blue * (1-gain) )
+    if i == Ntmp
+        plot( a, (i-1)*off+2+y_arr_comb( 1, : )-3, (i-1)*0.075*off+y_arr_comb( 2, : )+3.5, 'linewidth', 6, 'color', c_blue * gain + c_orange * (1-gain) )
+    else
+        plot( a, (i-1)*off+y_arr_comb( 1, : )-3, (i-1)*0.075*off+y_arr_comb( 2, : )+3.5, 'linewidth', 6, 'color', c_blue * gain + c_orange * (1-gain) )
+    end
 
 end
-set( a, 'xticklabel', {}, 'yticklabel', {}, 'xlim', [-12, 132], 'ylim', [0, 20]  )
+set( a, 'xticklabel', {}, 'yticklabel', {}, 'xlim', [-12, 145], 'ylim', [0, 20]  )
 set( a, 'color', 'none' )
 
-%% (--------------] (1b) Merging Discrete and Rhythmic Movements
+% ==================================== %
+% Combination of Discrete and Rhythmic Movements
+% For Spatial Scaling
+% ==================================== %
 
-% Load two mat functions, discrete movements
-tmp1 = load( '../learned_parameters/rhythmic/circle.mat' ); rhy1 = tmp1.data;
-tmp2 = load( '../learned_parameters/rhythmic/heart.mat'  ); rhy2 = tmp2.data;
-
-% Get the degrees of freedom and the number of weights 
-n = size( rhy1.weight, 1 );
-N = size( rhy1.weight, 2 );
-
-% Discrete DMP
-cs_r1       = CanonicalSystem( 'rhythmic', rhy1.tau, 1. );
-fs_r1       = NonlinearForcingTerm( cs_r1, N );
-trans_sys_r1 = TransformationSystem( rhy1.alpha_z, rhy1.beta_z, cs_r1 );
-
-% Rhythmic DMP
-cs_r2        = CanonicalSystem( 'rhythmic', rhy2.tau, 1. );
-fs_r2        = NonlinearForcingTerm( cs_r2, N );
-trans_sys_r2 = TransformationSystem( rhy2.alpha_z, rhy2.beta_z, cs_r2 );
+a = subplot( 3, 1, 3, 'parent', f );
+hold on; axis equal         
 
 % Rollout for each discrete movement
-t0i   =    0.0;           % The initial time of the movement rollout
-T     =   2*pi*6;           % The   whole time of the simulation 
-dt    =   1e-3;           % Time-step  for the simulation
-t_arr = 0:dt:T;           % Time array for the simulation
+t0i   =    0.0;    % The initial time of the movement rollout
+dt    =   1e-4;    % Time-step  for the simulation
+t_arr = 0:dt:(tau_rd*2*pi*40);  % Time array for the simulation
 
-scl1 =  3.0;
-scl2 =  0.6;
+% Time scaling factor
+tmp1 = 40.0; tmp2 = 1.0;
 
-F_arr1 = fs_r1.calc_forcing_term( t_arr( 1:end-1 ), rhy1.weight, t0i, scl1*eye( 2 ) );
-F_arr2 = fs_r2.calc_forcing_term( t_arr( 1:end-1 ), rhy2.weight, t0i, scl2*eye( 2 ) );
- 
+tscl1 = tau/tau_dd * tmp1;
+tscl2 = tau/tau_rd * tmp2;
+
+input_arr1 = fd.calc_forcing_term( t_arr( 1:end-1 )/tscl1, dis1.weight, t0i, eye( 2 ) );
+input_arr2 = fr.calc_forcing_term( t_arr( 1:end-1 )/tscl2, rhy1.weight, t0i, eye( 2 ) );
+
+prim1 = input_arr1 + az*bz*g_dd;
+prim2 = input_arr2 + az*bz*g_rd;
+
 a = subplot( 3, 1, 3, 'parent', f );
 hold on; axis equal
 
 gain_arr = 0:0.1:1;
 Ntmp = length( gain_arr );
-off = 12.0;
+off = 13.5;
 
-% Initialize a matrix to hold the interpolated colors
-color_arr = zeros( Ntmp, 3);
+scl1 =  1.1;
+scl2 =  0.2;
+tscl_arr = linspace( 1, 3, Ntmp );
+
+S = [ cos( pi/4 ), -sin( pi/4 ); 
+      sin( pi/4 ),  cos( pi/4 ) ];
 
 for i = 1: Ntmp
-    gain = gain_arr( i );
+    gain = gain_arr( Ntmp-i+1 );
+    prim = S*gain * prim1 * scl1 + inv( S ) * ( 1 - gain ) * prim2 * scl2;
 
-    F_arr =    F_arr1 * gain * scl1 +   F_arr2 * ( 1 - gain )* scl2;
-    goal  = rhy1.goal * gain * scl1+   rhy2.goal * ( 1 - gain )* scl2;
-     init =  rhy1.p_init * gain * scl1+ rhy2.p_init * ( 1 - gain )* scl2;
-    zinit =  rhy1.dp_init*rhy1.tau * gain* scl1 +  rhy2.dp_init*rhy2.tau * ( 1-gain ) * scl2;
-   
-    [ y_arr_comb, ~, ~] = trans_sys_r1.rollout( init, zinit, goal, F_arr, t0i, t_arr  );    
-    plot( a, (i-1)*off+y_arr_comb( 1, 500:end ), -(i-1)*0.00*off+y_arr_comb( 2, 500:end ), 'linewidth', 6, 'color', c_orange )
-
+    [ y_arr_comb, ~, ~] = ts.rollout( zeros( n, 1 ), zeros( n, 1 ), zeros( n, 1 ), prim, t0i, t_arr  );    
+    
+    if i == Ntmp
+        plot( a, (i-1)*off+2+y_arr_comb( 1, : )-3, (i-1)*0.070*off+y_arr_comb( 2, : )+3.5, 'linewidth', 6, 'color', c_blue * gain + c_orange * (1-gain) )
+    else
+        plot( a, (i-1)*off+y_arr_comb( 1, : )-3, (i-1)*0.070*off+y_arr_comb( 2, : )+3.5, 'linewidth', 6, 'color', c_blue * gain + c_orange * (1-gain) )
+    end
+    
 end
-set( a, 'xticklabel', {}, 'yticklabel', {}, 'xlim', [-12, 132], 'ylim', [-10, 10]  )
+set( a, 'xticklabel', {}, 'yticklabel', {}, 'xlim', [-12, 145], 'ylim', [0, 20]  )
 set( a, 'color', 'none' )
-fig_save( f, './images/fig3c')
 
-%% (1B) [Figure 3a] Merging the Primitives, Chaotic
+fig_save( f, './images/fig2a_E' )
 
-% Merging Two Rhythmic Movements
+%% (1B) [Figure 2c] Merging Two Rhythmic Movements
+
+close all; clc;
+
+f = figure( ); 
+
+% ==================================== %
+% Combination of Discrete and Rhytmic Movements
+% For simple combination
+% ==================================== %
 
 % Load two mat functions, discrete movements
 tmp1 = load( '../learned_parameters/rhythmic/heart.mat' );  rhy1 = tmp1.data;
 tmp2 = load( '../learned_parameters/rhythmic/circle.mat' ); rhy2 = tmp2.data;
 
-w_ratio = [ sqrt( 3 ), sqrt( 17 ), sqrt( 22 ) ];
-tmp = { 'a', 'b', 'c' }; 
-my_title = { '$\tau_1/\tau_2=\sqrt{3}$', '$\tau_1/\tau_2=\sqrt{17}$', '$\tau_1/\tau_2=\sqrt{22}$' };
-f = figure( );
-for j = 1:length( w_ratio )
-
-a = subplot( length( w_ratio ), 1, j )
-hold on
-
 % Get the degrees of freedom and the number of weights 
-n = size( rhy1.weight, 1 );
-N = size( rhy1.weight, 2 );
+n1 = size( rhy1.weight, 1 ); N1 = size( rhy1.weight, 2 );
+n2 = size( rhy2.weight, 1 ); N2 = size( rhy2.weight, 2 );
 
-% Create DMP for rhythmic
-cs_r1        = CanonicalSystem( 'rhythmic', rhy1.tau*w_ratio( j ), 1.0 );
-fs_r1        = NonlinearForcingTerm( cs_r1, N );
-trans_sys_r1 = TransformationSystem( rhy1.alpha_z, rhy1.beta_z, cs_r1 );
+assert( n1 == n2 && N1 == N2 )
+n = n1; N = N1;
 
+% The alpha, beta values must be same
+% The gains for the transformation system
+az1 = rhy1.alpha_z;   az2 = rhy2.alpha_z; 
+bz1 = rhy1.beta_z;    bz2 = rhy2.beta_z;
 
-% Create DMP for rhythmic
-cs_r2        = CanonicalSystem( 'rhythmic', rhy2.tau, 1.0 );
-fs_r2        = NonlinearForcingTerm( cs_r2, N );
-trans_sys_r2 = TransformationSystem( rhy2.alpha_z, rhy2.beta_z, cs_r1 );
+assert( az1 == az2 && bz1 == bz2 );
+az = az1; as = as1; bz = bz1;
+
+g_rd1   = rhy1.goal; g_rd2   = rhy2.goal;
+tau_rd1 = rhy1.tau;  tau_rd2 = rhy2.tau;
+
+tau = tau_rd1;
+
+% The DMP for the input
+% Either discrete or rhythmic can be used.
+s  = CanonicalSystem( 'rhythmic', tau, as );
+ts = TransformationSystem( az, bz, s );
 
 % Rollout for each discrete movement
-T     =   2*pi*4;           % The   whole time of the simulation 
-dt    =   1e-3;           % Time-step  for the simulation
-t_arr = 0:dt:T;           % Time array for the simulation
+t0i   =    0.0;    % The initial time of the movement rollout
+dt    =   1e-4;    % Time-step  for the simulation
+t_arr = 0:dt:(tau_rd1*2*pi*3);  % Time array for the simulation
 
-scl1 = 1;
-scl2 = 26;
+% The discrete movements' DMPs
+sr1  = CanonicalSystem( 'rhythmic', tau_rd1, 1.0 );
+sr2  = CanonicalSystem( 'rhythmic', tau_rd2, 1.0 );
 
-F_arr1 = fs_r1.calc_forcing_term( t_arr( 1:end-1 ), rhy1.weight, 0, scl1 * eye( 2 ) );
-F_arr2 = fs_r2.calc_forcing_term( t_arr( 1:end-1 ), rhy2.weight, 0, scl2 * eye( 2 ) );
+fr1  = NonlinearForcingTerm( sr1, N );
+fr2  = NonlinearForcingTerm( sr2, N );
+
+% Time scaling factor
+tmp1 = 1.0; tmp2 = 1.0;
+
+tscl1 = tau/tau_rd1 * tmp1;
+tscl2 = tau/tau_rd2 * tmp2;
+
+input_arr1 = fr1.calc_forcing_term( t_arr( 1:end-1 )/tscl1, rhy1.weight, t0i, eye( 2 ) );
+input_arr2 = fr2.calc_forcing_term( t_arr( 1:end-1 )/tscl2, rhy2.weight, t0i, eye( 2 ) );
+
+prim1 = input_arr1 + az*bz*g_rd1;
+prim2 = input_arr2 + az*bz*g_rd2;
+
+a = subplot( 3, 1, 1, 'parent', f );
+hold on; axis equal
 
 gain_arr = 0:0.1:1;
 Ntmp = length( gain_arr );
-off = 33.0;
+off = 14.0;
+
+scl1 =  0.4;
+scl2 = 11.0;
+tscl_arr = linspace( 1, 3, Ntmp );
 
 for i = 1: Ntmp
-    gain = gain_arr( i );
+    gain = gain_arr( Ntmp-i+1 );
 
-    F_arr =    F_arr1 * gain +    F_arr2 * ( 1 - gain );
-     init = scl1 *  rhy1.p_init * gain + scl2 * rhy2.p_init * (1 - gain );
-    dinit = scl1 * rhy1.dp_init * gain + scl2 * rhy2.dp_init * (1 - gain );
-    
-    
-    [ y_arr_comb, ~, ~] = trans_sys_r1.rollout( init, dinit, zeros( 2, 1), F_arr, 0, t_arr  );    
-    
-    plot( a, (i-1)*off+y_arr_comb( 1, : ), y_arr_comb( 2, : ), 'linewidth', 2, 'color', c_orange )
-end
-axis equal
-set( gca,'xticklabel', {}, 'yticklabel', {}, 'xlim', [-25, 360], 'ylim', [-40, 40] )
-title( my_title{ j }, 'fontsize', 40 )
+    prim = gain * prim1 * scl1 + ( 1 - gain ) * prim2 * scl2;
+
+    [ y_arr_comb, ~, ~] = ts.rollout( zeros( n, 1 ), zeros( n, 1 ), zeros( n, 1 ), prim, t0i, t_arr  );    
+
+    plot( a, (i-1)*off+y_arr_comb( 1, : )-3, -(i-1)*0.020*off+y_arr_comb( 2, : )+3.5, 'linewidth', 3, 'color', c_orange )
 
 end
+set( a, 'xticklabel', {}, 'yticklabel', {}, 'xlim', [-15, 142], 'ylim', [-10, 10]  )
+set( a, 'color', 'none' )
 
-fig_save( f, './images/fig4' )
+
+% Rollout for each discrete movement
+t0i   =    0.0;    % The initial time of the movement rollout
+dt    =   1e-4;    % Time-step  for the simulation
+t_arr = 0:dt:(tau_rd1*2*pi*20);  % Time array for the simulation
+
+
+% Time scaling factor
+tmp1 = 1.0; tmp2 = 10.0;
+
+tscl1 = tau/tau_rd1 * tmp1;
+tscl2 = tau/tau_rd2 * tmp2;
+
+input_arr1 = fr1.calc_forcing_term( t_arr( 1:end-1 )/tscl1, rhy1.weight, t0i, eye( 2 ) );
+input_arr2 = fr2.calc_forcing_term( t_arr( 1:end-1 )/tscl2, rhy2.weight, t0i, eye( 2 ) );
+
+prim1 = input_arr1 + az*bz*g_rd1;
+prim2 = input_arr2 + az*bz*g_rd2;
+
+a = subplot( 3, 1, 2, 'parent', f );
+hold on; axis equal
+
+gain_arr = 0:0.1:1;
+Ntmp = length( gain_arr );
+off = 14.0;
+
+scl1 =  0.4;
+scl2 = 11.0;
+tscl_arr = linspace( 1, 3, Ntmp );
+
+for i = 1: Ntmp
+    gain = gain_arr( Ntmp-i+1 );
+
+    prim = gain * prim1 * scl1 + ( 1 - gain ) * prim2 * scl2;
+
+    [ y_arr_comb, ~, ~] = ts.rollout( zeros( n, 1 ), zeros( n, 1 ), zeros( n, 1 ), prim, t0i, t_arr  );    
+
+    plot( a, (i-1)*off+y_arr_comb( 1, : )-3, -(i-1)*0.020*off+y_arr_comb( 2, : )+3.5, 'linewidth', 3, 'color', c_orange )
+
+end
+set( a, 'xticklabel', {}, 'yticklabel', {}, 'xlim', [-15, 142], 'ylim', [-10, 10]  )
+set( a, 'color', 'none' )
+
+
+
+% Rollout for each discrete movement
+t0i   =    0.0;    % The initial time of the movement rollout
+dt    =   1e-4;    % Time-step  for the simulation
+t_arr = 0:dt:(tau_rd1*2*pi*20);  % Time array for the simulation
+
+
+% Time scaling factor
+tmp1 = 1.0; tmp2 = 10.0;
+
+tscl1 = tau/tau_rd1 * tmp1;
+tscl2 = tau/tau_rd2 * tmp2;
+
+input_arr1 = fr1.calc_forcing_term( t_arr( 1:end-1 )/tscl1, rhy1.weight, t0i, eye( 2 ) );
+input_arr2 = fr2.calc_forcing_term( t_arr( 1:end-1 )/tscl2, rhy2.weight, t0i, eye( 2 ) );
+
+prim1 = input_arr1 + az*bz*g_rd1;
+prim2 = input_arr2 + az*bz*g_rd2;
+
+a = subplot( 3, 1, 3, 'parent', f );
+hold on; axis equal
+
+gain_arr = 0:0.1:1;
+Ntmp = length( gain_arr );
+off = 14.0;
+
+scl1 =  0.4;
+scl2 = 11.0;
+tscl_arr = linspace( 1, 3, Ntmp );
+
+
+S = [ cos( pi/3 ), -sin( pi/3 ); 
+      sin( pi/3 ),  cos( pi/3 ) ];
+
+
+for i = 1: Ntmp
+    gain = gain_arr( Ntmp-i+1 );
+
+    prim = S^2 * gain * prim1 * scl1 + ( 1 - gain ) * prim2 * scl2;
+
+    [ y_arr_comb, ~, ~] = ts.rollout( zeros( n, 1 ), zeros( n, 1 ), zeros( n, 1 ), prim, t0i, t_arr  );    
+
+    plot( a, (i-1)*off+y_arr_comb( 1, : )-3, (i-1)*0.020*off+y_arr_comb( 2, : )+3.5, 'linewidth', 3, 'color', c_orange )
+
+end
+set( a, 'xticklabel', {}, 'yticklabel', {}, 'xlim', [-15, 142], 'ylim', [-5, 15]  )
+set( a, 'color', 'none' )
+
+
+
+fig_save( f, './images/fig2a_F' )
+
+%% (1B) [Figure 2c] Merging Two Rhythmic Movements
+
+close all; clc;
+
+f = figure( ); 
+
+% ==================================== %
+% Combination of Discrete and Rhytmic Movements
+% For simple combination
+% ==================================== %
+
+% Load two mat functions, discrete movements
+tmp1 = load( '../learned_parameters/rhythmic/heart.mat' );  rhy1 = tmp1.data;
+tmp2 = load( '../learned_parameters/rhythmic/circle.mat' ); rhy2 = tmp2.data;
+
+% Get the degrees of freedom and the number of weights 
+n1 = size( rhy1.weight, 1 ); N1 = size( rhy1.weight, 2 );
+n2 = size( rhy2.weight, 1 ); N2 = size( rhy2.weight, 2 );
+
+assert( n1 == n2 && N1 == N2 )
+n = n1; N = N1;
+
+% The alpha, beta values must be same
+% The gains for the transformation system
+az1 = rhy1.alpha_z;   az2 = rhy2.alpha_z; 
+bz1 = rhy1.beta_z;    bz2 = rhy2.beta_z;
+
+assert( az1 == az2 && bz1 == bz2 );
+az = az1; as = as1; bz = bz1;
+
+g_rd1   = rhy1.goal; g_rd2   = rhy2.goal;
+tau_rd1 = rhy1.tau;  tau_rd2 = rhy2.tau;
+
+tau = tau_rd1;
+
+% The DMP for the input
+% Either discrete or rhythmic can be used.
+s  = CanonicalSystem( 'rhythmic', tau, as );
+ts = TransformationSystem( az, bz, s );
+
+% Rollout for each discrete movement
+t0i   =    0.0;    % The initial time of the movement rollout
+dt    =   1e-4;    % Time-step  for the simulation
+t_arr = 0:dt:(tau_rd1*2*pi*10);  % Time array for the simulation
+
+% The discrete movements' DMPs
+sr1  = CanonicalSystem( 'rhythmic', tau_rd1, 1.0 );
+sr2  = CanonicalSystem( 'rhythmic', tau_rd2, 1.0 );
+
+fr1  = NonlinearForcingTerm( sr1, N );
+fr2  = NonlinearForcingTerm( sr2, N );
+
+% Time scaling factor
+tmp1 = 1.0; tmp2 = sqrt( 3 );
+
+tscl1 = tau/tau_rd1 * tmp1;
+tscl2 = tau/tau_rd2 * tmp2;
+
+input_arr1 = fr1.calc_forcing_term( t_arr( 1:end-1 )/tscl1, rhy1.weight, t0i, eye( 2 ) );
+input_arr2 = fr2.calc_forcing_term( t_arr( 1:end-1 )/tscl2, rhy2.weight, t0i, eye( 2 ) );
+
+prim1 = input_arr1 + az*bz*g_rd1;
+prim2 = input_arr2 + az*bz*g_rd2;
+
+a = subplot( 3, 1, 1, 'parent', f );
+hold on; axis equal
+
+gain_arr = 0:0.1:1;
+Ntmp = length( gain_arr );
+off = 14.0;
+
+scl1 =  0.4;
+scl2 = 11.0;
+
+for i = 1: Ntmp
+    gain = gain_arr( Ntmp-i+1 );
+
+    prim = gain * prim1 * scl1 + ( 1 - gain ) * prim2 * scl2;
+
+    [ y_arr_comb, ~, ~] = ts.rollout( zeros( n, 1 ), zeros( n, 1 ), zeros( n, 1 ), prim, t0i, t_arr  );    
+
+    plot( a, (i-1)*off+y_arr_comb( 1, : )-3, -(i-1)*0.020*off+y_arr_comb( 2, : )+3.5, 'linewidth', 3, 'color', c_orange )
+
+end
+set( a, 'xticklabel', {}, 'yticklabel', {}, 'xlim', [-15, 142], 'ylim', [-10, 10]  )
+set( a, 'color', 'none' )
+
+
+% Time scaling factor
+tmp1 = 1.0; tmp2 = sqrt( 13 );
+
+tscl1 = tau/tau_rd1 * tmp1;
+tscl2 = tau/tau_rd2 * tmp2;
+
+input_arr1 = fr1.calc_forcing_term( t_arr( 1:end-1 )/tscl1, rhy1.weight, t0i, eye( 2 ) );
+input_arr2 = fr2.calc_forcing_term( t_arr( 1:end-1 )/tscl2, rhy2.weight, t0i, eye( 2 ) );
+
+prim1 = input_arr1 + az*bz*g_rd1;
+prim2 = input_arr2 + az*bz*g_rd2;
+
+a = subplot( 3, 1, 2, 'parent', f );
+hold on; axis equal
+
+gain_arr = 0:0.1:1;
+Ntmp = length( gain_arr );
+off = 14.0;
+
+scl1 =  0.4;
+scl2 = 11.0;
+tscl_arr = linspace( 1, 3, Ntmp );
+
+for i = 1: Ntmp
+    gain = gain_arr( Ntmp-i+1 );
+
+    prim = gain * prim1 * scl1 + ( 1 - gain ) * prim2 * scl2;
+
+    [ y_arr_comb, ~, ~] = ts.rollout( zeros( n, 1 ), zeros( n, 1 ), zeros( n, 1 ), prim, t0i, t_arr  );    
+
+    plot( a, (i-1)*off+y_arr_comb( 1, : )-3, -(i-1)*0.020*off+y_arr_comb( 2, : )+3.5, 'linewidth', 3, 'color', c_orange )
+
+end
+set( a, 'xticklabel', {}, 'yticklabel', {}, 'xlim', [-15, 142], 'ylim', [-10, 10]  )
+set( a, 'color', 'none' )
+
+
+% Time scaling factor
+tmp1 = 1.0; tmp2 = sqrt( 22 );
+
+tscl1 = tau/tau_rd1 * tmp1;
+tscl2 = tau/tau_rd2 * tmp2;
+
+input_arr1 = fr1.calc_forcing_term( t_arr( 1:end-1 )/tscl1, rhy1.weight, t0i, eye( 2 ) );
+input_arr2 = fr2.calc_forcing_term( t_arr( 1:end-1 )/tscl2, rhy2.weight, t0i, eye( 2 ) );
+
+prim1 = input_arr1 + az*bz*g_rd1;
+prim2 = input_arr2 + az*bz*g_rd2;
+
+a = subplot( 3, 1, 3, 'parent', f );
+hold on; axis equal
+
+for i = 1: Ntmp
+    gain = gain_arr( Ntmp-i+1 );
+
+    prim = gain * prim1 * scl1 + ( 1 - gain ) * prim2 * scl2;
+
+    [ y_arr_comb, ~, ~] = ts.rollout( zeros( n, 1 ), zeros( n, 1 ), zeros( n, 1 ), prim, t0i, t_arr  );    
+
+    plot( a, (i-1)*off+y_arr_comb( 1, : )-3, -(i-1)*0.020*off+y_arr_comb( 2, : )+3.5, 'linewidth', 3, 'color', c_orange )
+
+end
+set( a, 'xticklabel', {}, 'yticklabel', {}, 'xlim', [-15, 142], 'ylim', [-10, 10]  )
+set( a, 'color', 'none' )
+
+
+
+fig_save( f, './images/fig2a_G' )
+
 
 
 %% (1B) [Figure 2a] Sequencing Discrete Movements - Drawing Individual Images
