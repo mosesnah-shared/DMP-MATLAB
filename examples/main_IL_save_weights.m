@@ -182,7 +182,7 @@ syms t_sym
 name_traj = 'heart';
 
 % Period 
-Tp = 1;       
+Tp = 0.1;       
 
 switch name_traj
 
@@ -209,8 +209,8 @@ ddp_sym = diff( dp_sym, t_sym );
  dp_func = matlabFunction(  dp_sym );
 ddp_func = matlabFunction( ddp_sym );
 
-dt = 1e-3;
-t_arr = 0: dt: 1; 
+dt = 1e-4;
+t_arr = 0:dt:Tp; 
 
 % Since it is a cyclic input, we do not need the final value
   t_arr = t_arr( 1:end-1 );
@@ -258,7 +258,7 @@ w_arr = transpose( ( Phi_mat' * Phi_mat )^-1 * Phi_mat' * f_arr' );
 
 %%  -- (2B) Double Check the Results
 
-T   = 2.0;
+T   = Tp;
 N   = 3000;
 t_arr = linspace( 0, T, N+1 ); 
 
