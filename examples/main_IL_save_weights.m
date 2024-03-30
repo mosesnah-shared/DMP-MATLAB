@@ -179,7 +179,8 @@ syms t_sym
 % The three types of trajectory that we aim to learn
 % [1] circle
 % [2] heart
-name_traj = 'heart';
+% [3] eight
+name_traj = 'eight';
 
 % Period 
 Tp = 1;       
@@ -196,6 +197,11 @@ switch name_traj
         t = 2*pi/Tp * t_sym;
         x = 16 * sin( t )^3;
         y = 13 * cos( t ) - 5 * cos( 2*t )- 2 * cos( 3*t ) - cos( 4*t );
+
+    case 'eight'
+        t = 2*pi/Tp * t_sym;
+        x = 2 * sin( t );
+        y = 2 * sin( t ) * cos( t );
 
     otherwise
         error( 'Wrong input: %s', name_traj );  
