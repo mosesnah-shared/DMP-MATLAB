@@ -179,7 +179,8 @@ syms t_sym
 % The three types of trajectory that we aim to learn
 % [1] circle
 % [2] heart
-name_traj = 'circle';
+% [3] eight
+name_traj = 'eight';
 
 % Period 
 Tp = 1;       
@@ -197,6 +198,11 @@ switch name_traj
         x = 16 * sin( t )^3;
         y = 13 * cos( t ) - 5 * cos( 2*t )- 2 * cos( 3*t ) - cos( 4*t );
 
+    case 'eight'
+        t = 2*pi/Tp * t_sym;
+        x = 2 * sin( t );
+        y = 2 * sin( t ) * cos( t );
+
     otherwise
         error( 'Wrong input: %s', name_traj );  
 end
@@ -209,8 +215,8 @@ ddp_sym = diff( dp_sym, t_sym );
  dp_func = matlabFunction(  dp_sym );
 ddp_func = matlabFunction( ddp_sym );
 
-dt = 1e-3;
-t_arr = 0: dt: 1; 
+dt = 1e-4;
+t_arr = 0:dt:Tp; 
 
 % Since it is a cyclic input, we do not need the final value
   t_arr = t_arr( 1:end-1 );
@@ -221,9 +227,11 @@ ddp_arr = ddp_func( t_arr );
 % Get the length of the t_arr
 P = length( t_arr );
 
+% Get the initial position
+p_arr = p_arr - p_arr( :, 1 );
+
 % Get the average position and take it off
 goal = mean( p_arr, 2 );
-p_arr = p_arr - goal;
 
 % Parameters of DMP
 N = 50;
@@ -239,7 +247,7 @@ fs        = NonlinearForcingTerm( cs, N );
 
 % The Force Array 
 % Saving the initial and goal location of the demonstrated trajectory
-f_arr = trans_sys.get_desired( p_arr, dp_arr, ddp_arr, zeros( 2, 1 ) );
+f_arr = trans_sys.get_desired( p_arr, dp_arr, ddp_arr, goal );
 
 % The phi matrix 
 Phi_mat = zeros( P, N );
@@ -256,22 +264,20 @@ w_arr = transpose( ( Phi_mat' * Phi_mat )^-1 * Phi_mat' * f_arr' );
 
 %%  -- (2B) Double Check the Results
 
-T   = 2.0;
+T   = Tp;
 N   = 3000;
 t_arr = linspace( 0, T, N+1 ); 
 
 f = figure( ); a = axes( 'parent', f );
 hold( a, 'on' ); axis equal
 
-input_arr = fs.calc_forcing_term( t_arr( 1:end-1 ), w_arr, 0, eye( 2 ) );
-[ p_roll, ~, ~] = trans_sys.rollout( p_func( 0 ), zeros( 2, 1 ), zeros( 2, 1 ), input_arr, 0, t_arr  ); 
+input_arr = fs.calc_forcing_term( t_arr( 1:end-1 ), w_arr, 0, eye( 2 ) ) + alpha_z*beta_z*goal ;
+[ p_roll, ~, ~] = trans_sys.rollout( zeros( 2, 1 ), zeros( 2, 1 ), zeros( 2, 1 ), input_arr, 0, t_arr  ); 
 
 plot( a, p_roll( 1, : ), p_roll( 2, : ), 'linewidth', 4 )
 plot( a,  p_arr( 1, : ),  p_arr( 2, : ), 'linewidth', 8, 'linestyle', '--' , 'color', 'k')
 
 %%  -- (2C) Saving the Data for future rollout
-
-
 
 data = struct;
 
@@ -282,7 +288,7 @@ data.tau     = tau;
 data.alpha_z = alpha_z;
 data.beta_z  =  beta_z;
 data.weight  = w_arr;
-data.p_init  =  p_func( 0 );
+data.p_init  =  p_arr( :, 1 );
 data.dp_init =  dp_func( 0 );
 data.goal    = goal;
 
