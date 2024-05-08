@@ -12,7 +12,7 @@ fig_config( 'fontSize', 20, 'markerSize', 10 )
 %%  -- (1A) Import Data
 
 % Import the data
-traj_name = 'M';
+traj_name = 'hill_shape';
 load( [ './alphabets/', traj_name, '.mat' ] );
 
 % Time, position, velocity and acceleration of the data

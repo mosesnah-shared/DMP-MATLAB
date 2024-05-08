@@ -17,7 +17,8 @@ syms t_sym
 % The three types of trajectory that we aim to learn
 % [1] cosine
 % [2] radial
-name_traj = 'radial';
+% [3] minjerk
+name_traj = 'minjerk';
 
 % Duration and Normalized Time        
 D  = 3.0;   
@@ -43,6 +44,12 @@ switch name_traj
         px = 0;
         py = rt * cos( theta );
         pz = rt * sin( theta );
+
+    case 'minjerk'
+
+        px = 10 * tn^3 - 15 * tn^4 + 6 * tn^5;
+        py = 10 * tn^3 - 15 * tn^4 + 6 * tn^5;
+        pz = 10 * tn^3 - 15 * tn^4 + 6 * tn^5;
 
     otherwise
         error( 'Wrong input: %s', name_traj )
@@ -92,8 +99,8 @@ N  = 50;
 
 % Parameters of DMP
 alpha_s = 1.0;
-alpha_z = 1000.0;
-beta_z  = 0.5 * alpha_z;
+alpha_z = 100.0;
+beta_z  = 0.25 * alpha_z;
 tau = D;
 
 % Defining the DMPs
@@ -159,11 +166,11 @@ data.tau     = tau;
 data.alpha_s = alpha_s;
 data.alpha_z = alpha_z;
 data.beta_z  =  beta_z;
-data.weight  = w_arr;
+data.weight  = w_arr( 1:2, : );
 
 % Goal Location, where initial position is automatically zero
-data.goal =  g_d;
-data.z0   = dp_data( :, 1 )/tau;
+data.goal =  g_d( 1:2 );
+data.z0   = dp_data( 1:2, 1 )/tau;
 
 save( ['learned_parameters/', name_traj ,'.mat' ], 'data' );
 
