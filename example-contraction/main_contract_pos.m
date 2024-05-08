@@ -20,7 +20,7 @@ traj_data = cell( 1, Ntraj );
 
 % Loading the data
 for i = 1 : Ntraj
-    tmp = load( [ './learned_parameters/', traj_names{ i }, '.mat' ] );
+    tmp = load( [ './learned_parameters/discrete/', traj_names{ i }, '.mat' ] );
     traj_data{ i } = tmp.data;
 end
 
@@ -88,7 +88,7 @@ for i = 1 : Ntraj
 
     % The Three elements of DMP
     cs        = CanonicalSystem( 'discrete', data.tau, data.alpha_s );
-    fs        = NonlinearForcingTerm( cs, N );
+    fs        =     gTerm( cs, N );
     trans_sys = TransformationSystem( data.alpha_z, data.beta_z, cs );
 
     % Calculate the nonlinear forcing term 
